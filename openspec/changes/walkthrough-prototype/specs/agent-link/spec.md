@@ -118,6 +118,25 @@ visual to a section. Everything it submits SHALL pass the same anchor validation
 - **WHEN** the agent answers a question by referring to a caller in another file
 - **THEN** the viewer opens and spotlights that caller while the answer text is in the pane
 
+### Requirement: Fixes during a review keep the walkthrough
+The skill shipped with xenagos SHALL tell the session to leave a fix uncommitted while a review is open, since a
+commit moves the branch and starts a new review without the plan, and to say that the fix is not shown in the viewer.
+This is guidance to the session, not a permission rule.
+
+#### Scenario: Fix asked during playback
+- **GIVEN** a walkthrough of `feature` at head `H1` is being played
+- **WHEN** the reviewer asks the agent to fix a line
+- **THEN** the agent edits the file, does not commit, and says the fix is uncommitted and not shown in the viewer, and the review still has its plan at `H1`
+
+### Requirement: Edits in the private checkout are disclosed
+The skill SHALL tell the session that, when it runs in the private checkout, it says its edits are not in the user's
+checkout and are removed with the review's data.
+
+#### Scenario: Fix asked in the private checkout
+- **GIVEN** the review's session runs in the private checkout
+- **WHEN** the reviewer asks the agent to fix a line
+- **THEN** the agent says its edit is not in the user's checkout before or while making it
+
 ### Requirement: Asking pauses playback
 Asking a question during playback SHALL pause playback at the current step; the reviewer SHALL be able to resume from
 that step.

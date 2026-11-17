@@ -1,32 +1,27 @@
 schema: spec-driven
 
-# Project context (optional)
-# Add only constraints that should guide OpenSpec artifacts and workflows.
-# Include constraints an agent cannot infer by reading the code.
-# Keep general project documentation and discoverable codebase facts out.
-# Example:
-#   context: |
-#     Designs and tasks must cover Windows, macOS, and Linux
-#     Write all artifacts in Spanish
+# Constraints that guide every OpenSpec artifact in this project. Keep this short: it is added to every
+# artifact instruction.
+context: |
+  xenagos transfers the author's mental model of a change to a reviewer. It is not a bug finder.
+  Evidence-backed rules; do not weaken without new evidence:
+    - A plan never vouches for the change and always lists what it does not cover.
+    - Sections are small, named by purpose, core first. Narration is terse; style is replaceable.
+    - Judge xenagos from observed runs, not from users' opinion of it.
+  The only agent is Claude Code, reached through a `claude attach` terminal pane and the `xen` CLI.
+  Tried and dropped; do not re-propose without new evidence: MCP wait tool, Agent SDK chat, Monitor
+  delivery, forking the session, peer messaging, MCP channels, IDE link, git worktree, Rust server,
+  CodeTour format, tldraw.
+  The agent link relies on undocumented Claude Code behaviour measured on 2.1.323; a change touching
+  it re-measures on the installed version.
+  Python server (the maintainer audits Python), TypeScript viewer. macOS and Linux; Chromium only.
+  xenagos never modifies the user's working copy.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always state what is out of scope
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
-
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+rules:
+  proposal:
+    - List planned later changes as out of scope
+  design:
+    - Record spike results with measured numbers and tool versions; spike code is throwaway
+    - Put decisions not taken by the author under "Decisions taken on the author's behalf, to confirm"
+  tasks:
+    - End every task with "verified by" and a concrete check

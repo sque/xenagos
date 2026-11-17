@@ -353,6 +353,9 @@ Spikes 1.1 and 1.3 remain true but the design no longer depends on them (decisio
 
 ## Decisions taken on the author's behalf, to confirm
 
+Confirmed by the author on 2026-11-17, together with `default-style-draft.md` as the built-in default style (task 5.5)
+and the voice recommendation under Open Questions.
+
 - **Branch moved.** The review id includes the head, so a new head is a new review without a plan. The old review
   stays as it was and offers to open the new head; nothing is carried over in this change.
 - **Agent opens a review that already has a session.** The existing session stays; the opening session is told. The
@@ -363,12 +366,31 @@ Spikes 1.1 and 1.3 remain true but the design no longer depends on them (decisio
 - **No line wrapping in the walkthrough code view** (decided after spike 2.6, see decision 5b). Long lines scroll
   sideways.
 
+### Fixes during a review (resolved 2026-11-17)
+
+"The agent may edit files" and "a moved branch is a new review" pull against each other. If the agent commits a fix,
+the branch moves and the reviewer is left with a new review that has no plan, while the old one still shows the code
+without the fix. If it does not commit, the walkthrough survives, but the viewer does not show the fix either, since a
+review covers committed changes only (spec `review-target`).
+
+For this change: the skill tells the session to leave fixes uncommitted while a review is open and to say so, so the
+reviewer checks the fix in the agent pane and commits after the review (spec `agent-link`, "Fixes during a review keep
+the walkthrough"). In the private checkout the session says its edits are not in the user's checkout, because
+`xen clean` removes them.
+
+Later change: carry a plan over to a new head. Steps already store `expect` text, so the old plan can be validated
+against the new head and every step that still matches kept.
+
 ## Not yet verified
 
-- Reading "waiting for the reviewer" from `claude agents --json` (the working and idle states were seen).
+- Reading "waiting for the reviewer" from `claude agents --json` (the working and idle states were seen). A session
+  with a Monitor running reports `working`/`busy` even after its turn ended, so that status alone does not mean
+  "has work".
 - Detecting that another terminal has the session open. If it cannot be detected, the shared-display notice is shown
   whenever the session existed before the review.
 
 ## Open Questions
 
-- Which local neural voice to recommend for the `command` provider. Does not change the interface.
+- Which local neural voice to recommend for the `command` provider. Does not change the interface. Proposed and
+  accepted on 2026-11-17, to be checked by ear in task 6.9: Kokoro (82M, Apache-2.0) as the recommended voice, Piper
+  as the lighter fallback, and macOS `say` with a Premium voice as the option that needs no install.

@@ -34,6 +34,8 @@ Out of scope here, planned as later changes:
 - `review-comments`: show PR comments, discuss one with the agent, apply a fix, reply and resolve.
 - Reviewer calibration and understanding checks (what the reviewer already knows; a closing check).
 - Sharing a finished walkthrough as a static page.
+- Human editing of a plan.
+- Carrying a plan over when the reviewed branch moves.
 
 ## Capabilities
 

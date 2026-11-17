@@ -1,0 +1,345 @@
+{
+  "$defs": {
+    "CodeTarget": {
+      "additionalProperties": false,
+      "description": "Lines of a file at the base or head revision, optionally narrowed to a span of characters.\n\nLines and columns count from 1 and both ends are included. With a span, `startCol` is on the first line and\n`endCol` on the last.",
+      "properties": {
+        "endCol": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "endLine": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        "expect": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Text that must occur in the targeted range; catches a valid range that points at the wrong code."
+        },
+        "path": {
+          "type": "string"
+        },
+        "side": {
+          "default": "head",
+          "enum": [
+            "base",
+            "head"
+          ],
+          "type": "string"
+        },
+        "startCol": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "startLine": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "startLine",
+        "endLine"
+      ],
+      "title": "CodeTarget",
+      "type": "object"
+    },
+    "Orientation": {
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The document the problem is taken from."
+        },
+        "problem": {
+          "description": "The problem the change addresses, before any solution; a short paragraph.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "commit-messages",
+            "document",
+            "inferred"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "problem",
+        "source"
+      ],
+      "title": "Orientation",
+      "type": "object"
+    },
+    "Plan": {
+      "additionalProperties": false,
+      "properties": {
+        "orientation": {
+          "$ref": "#/$defs/Orientation"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "orientation",
+        "sections"
+      ],
+      "title": "Plan",
+      "type": "object"
+    },
+    "ReviewInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "base": {
+          "type": "string"
+        },
+        "branch": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "head": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "repo": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "repo",
+        "label",
+        "base",
+        "head",
+        "branch"
+      ],
+      "title": "ReviewInfo",
+      "type": "object"
+    },
+    "Section": {
+      "additionalProperties": false,
+      "properties": {
+        "explanation": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "hunks": {
+          "description": "The hunks that implement this section's idea.",
+          "items": {
+            "pattern": "^[^\\s].*:h[1-9][0-9]*$",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "role": {
+          "enum": [
+            "core",
+            "consequence",
+            "support"
+          ],
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/Step"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "title": {
+          "description": "Names the section's idea, not a file.",
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "visuals": {
+          "items": {
+            "$ref": "#/$defs/Visual"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "role",
+        "explanation",
+        "hunks",
+        "steps"
+      ],
+      "title": "Section",
+      "type": "object"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "form": {
+          "enum": [
+            "lines",
+            "box",
+            "circle"
+          ],
+          "type": "string"
+        },
+        "narration": {
+          "description": "Plain text, spoken as written and shown as the caption.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CodeTarget"
+            },
+            {
+              "$ref": "#/$defs/VisualTarget"
+            }
+          ]
+        }
+      },
+      "required": [
+        "narration",
+        "form",
+        "target"
+      ],
+      "title": "Step",
+      "type": "object"
+    },
+    "Visual": {
+      "additionalProperties": false,
+      "description": "Agent-authored HTML shown in a sandboxed frame (spec: section-visuals).",
+      "properties": {
+        "elements": {
+          "description": "Every element that can be linked, selected or spotlighted.",
+          "items": {
+            "$ref": "#/$defs/VisualElement"
+          },
+          "type": "array"
+        },
+        "html": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "html"
+      ],
+      "title": "Visual",
+      "type": "object"
+    },
+    "VisualElement": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+          "type": "string"
+        },
+        "link": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CodeTarget"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Code shown when the reviewer activates the element."
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "VisualElement",
+      "type": "object"
+    },
+    "VisualTarget": {
+      "additionalProperties": false,
+      "description": "An element that one of the section's visuals declares.",
+      "properties": {
+        "element": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+          "type": "string"
+        },
+        "visual": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "visual",
+        "element"
+      ],
+      "title": "VisualTarget",
+      "type": "object"
+    }
+  },
+  "title": "xenagos"
+}

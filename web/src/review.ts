@@ -1,12 +1,6 @@
-// Mirrors the server's ReviewInfo. Replaced by types generated from the server's models in task 5.1.
-export interface ReviewInfo {
-  id: string
-  repo: string
-  label: string
-  base: string
-  head: string
-  branch: string | null
-}
+import type { ReviewInfo } from './generated/types'
+
+export type { ReviewInfo }
 
 export async function fetchReview(): Promise<ReviewInfo> {
   const response = await fetch('/api/review')

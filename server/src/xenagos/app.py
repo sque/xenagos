@@ -6,22 +6,13 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 
 from xenagos import __version__
 from xenagos.access import Access, AccessControl
+from xenagos.api import ReviewInfo
 from xenagos.target import ReviewTarget
 
 VIEWER_MISSING = "The viewer is not built. Run `make web` in the xenagos repository, or install a built package."
-
-
-class ReviewInfo(BaseModel):
-    id: str
-    repo: str
-    label: str
-    base: str
-    head: str
-    branch: str | None
 
 
 def bundled_viewer_dir() -> Path | None:

@@ -1,0 +1,55 @@
+{
+  "orientation": {
+    "problem": "The app greets everyone with the same fixed text, so nobody can tell which build they are running.",
+    "source": "inferred"
+  },
+  "sections": [
+    {
+      "title": "Greet with the feature's name",
+      "role": "core",
+      "explanation": "The greeting now names the feature, so a run shows which build it came from.",
+      "hunks": ["app.py:h1"],
+      "steps": [
+        {
+          "narration": "Start with the old greeting. It is the same text whatever was built.",
+          "form": "lines",
+          "target": { "path": "app.py", "side": "base", "startLine": 1, "endLine": 1, "expect": "two" }
+        },
+        {
+          "narration": "I replaced it with text that names the feature.",
+          "form": "box",
+          "target": { "path": "app.py", "startLine": 1, "endLine": 1, "startCol": 7, "endCol": 19, "expect": "feature one" }
+        },
+        {
+          "narration": "The picture shows the greeting before and after.",
+          "form": "circle",
+          "target": { "visual": "greeting", "element": "after" }
+        }
+      ],
+      "visuals": [
+        {
+          "id": "greeting",
+          "title": "Before and after",
+          "html": "<p id=\"before\">two</p><p id=\"after\">feature one</p>",
+          "elements": [
+            { "id": "before", "link": { "path": "app.py", "side": "base", "startLine": 1, "endLine": 1 } },
+            { "id": "after", "link": { "path": "app.py", "startLine": 1, "endLine": 1 } }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "A test and a constant to build on",
+      "role": "support",
+      "explanation": "A placeholder test and a module constant that later work reads.",
+      "hunks": ["tests/test_app.py:h1", "lib.py:h1"],
+      "steps": [
+        {
+          "narration": "This constant is new and nothing reads it yet.",
+          "form": "lines",
+          "target": { "path": "lib.py", "startLine": 1, "endLine": 1, "expect": "X = 1" }
+        }
+      ]
+    }
+  ]
+}

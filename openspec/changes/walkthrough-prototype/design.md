@@ -118,7 +118,7 @@ the repository. One attach process per connected viewer; closing the viewer ends
   narration, repair a visual), each a one-line message naming the review and the `xen` command to start from.
 - **Agent to viewer:** the `xen` command, run by the agent like any other command: `xen open`, `xen guide`,
   `xen plan submit <file>`, `xen plan get [--without-narration]`, `xen narration submit <file>`,
-  `xen show <path>:<lines>[:<cols>] [--side old|new] [--form lines|box|circle]`, `xen step add`, `xen visual add`.
+  `xen show <path>:<start>[-<end>][:<startCol>-<endCol>] [--side base|head] [--form lines|box|circle]`, `xen step add`, `xen visual add`.
   A command finds its review by matching `CLAUDE_CODE_SESSION_ID` against the session recorded in each registry
   entry; `--review <id>` names one explicitly, and an ambiguous or missing match is an error listing the open
   reviews. A command for a review whose server has ended starts the server again from the saved state. A Claude Code skill shipped with
@@ -128,7 +128,19 @@ the repository. One attach process per connected viewer; closing the viewer ends
 - **Display size:** Claude Code keeps one display size per session, set by the last terminal that resized it. The
   viewer checks whether another terminal has the session open and shows the notice the spec requires.
 - **Never resumed automatically:** resuming a session that is still running starts a copy, so continuing, starting
-  or replacing a review's session is always the user's action.
+  or replacing a review's session is always the user's action. `claude attach` on a stopped background session starts
+  it again, so the pane attaches only to a session whose process runs.
+- **Nothing is typed into a session that waits for an answer.** While a permission prompt is open, the Enter that
+  submits a pasted question would answer the prompt with its highlighted choice, usually "Yes". The server reads
+  `waiting` from `claude agents --json` and refuses the question, and the prompt in the viewer says to answer in the
+  pane first. Seen in the build's live check.
+- **Measured in the build (Claude Code 2.1.323 to 2.1.326):** `claude attach` takes the short id that `claude --bg`
+  prints (`backgrounded · <id> · <name>`), not the full session id. `claude --bg` refuses a folder that was never
+  trusted in Claude Code, and trust of a parent folder does not count; xenagos passes the message on. Commands run by
+  xenagos drop the variables Claude Code sets for a session's commands (`CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, ...),
+  so a server started by `xen open` from inside a session does not start or attach as a child of that session. The
+  attach program runs on a pseudo-terminal that is its controlling terminal (`xenagos.ttyexec`), or it never hears
+  of a resize.
 
 Alternatives considered: a session started through the Agent SDK with the chat drawn by the viewer (spike 1.3 showed
 it works, but it means rebuilding Claude Code's interface and a separate permission model); an MCP server whose tool
@@ -404,6 +416,11 @@ Later change: carry a plan over to a new head. Steps already store `expect` text
 against the new head and every step that still matches kept.
 
 ## Not yet verified
+
+- A session for the private checkout (task 3.3). `claude --bg` refuses a folder never trusted in Claude Code, and each
+  review's private clone is a new folder, so starting a session there will fail until the user trusts it. To settle
+  with task 3.3: one trusted parent for all clones does not help (parent trust does not count); options are telling
+  the user to run `claude` there once, or not starting sessions in private clones.
 
 - Reading "waiting for the reviewer" from `claude agents --json` (the working and idle states were seen). A session
   with a Monitor running reports `working`/`busy` even after its turn ended, so that status alone does not mean

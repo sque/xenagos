@@ -38,3 +38,14 @@ def try_run(repo: Path, *args: str) -> str | None:
         return run(repo, *args)
     except GitError:
         return None
+
+
+def try_run_bytes(repo: Path, *args: str) -> bytes | None:
+    """Run git in `repo` and return its raw standard output, or None when git fails."""
+    result = subprocess.run(  # noqa: S603 - fixed executable, arguments passed as a list
+        ["git", "-C", str(repo), *args],  # noqa: S607 - git is looked up on PATH on purpose
+        capture_output=True,
+        env=_env(),
+        check=False,
+    )
+    return result.stdout if result.returncode == 0 else None

@@ -39,7 +39,7 @@
 ## 5. Plan (spec: walkthrough-plan)
 
 - [x] 5.1 Plan schema as Pydantic models, JSON Schema export, generated TypeScript types and a staleness check; verified by the check failing after a model change without regeneration, and by tests accepting a valid sample and rejecting samples with a missing role, an empty title, a step without target, a step without form, and a target naming an undeclared visual element
-- [ ] 5.2 Anchor validation against pinned revisions including `expect` text, with rejected items named; verified by tests for an out-of-range target, a wrong `expect`, and a hunk claimed twice
+- [x] 5.2 Anchor validation against pinned revisions including `expect` text, with rejected items named; verified by tests for an out-of-range target, a wrong `expect`, and a hunk claimed twice
 - [ ] 5.3 Not-covered list by category with line counts; verified by a test where one hunk is left unclaimed
 - [ ] 5.4 Configuration loading (spec: configuration): XDG locations with fallbacks, key-by-key merge of repository over user over built-in, schema validation with unknown keys reported, style directories with the same lookup order, read on each use; verified by tests for each level winning in turn, a partial repository override, a misspelled key, a custom `XDG_CONFIG_HOME`, and an edit taking effect without restarting the server
 - [ ] 5.4a `agent_open`, `session.name` and `session.permission_mode` settings; verified by an agent-started review under each `agent_open` value and by a started session carrying the configured name and mode

@@ -64,7 +64,10 @@ object store and refs with it.
 ### 3. Plan as a validated JSON document
 
 The agent writes one JSON document: orientation, sections (title, role, explanation, claimed hunks, steps, visuals).
-A hunk is named `<path>:h<n>` from the pinned diff. A step has `narration`, `form` (`lines`, `box` or `circle`) and a
+A hunk is named `<path>:h<n>` from the pinned diff. It is one contiguous changed region, so hunks come from a diff with
+no context lines; the diff options that change how git splits a diff (algorithm `histogram`, rename detection,
+inter-hunk context, external diff, text conversion) are fixed in `xenagos.diff`, so the user's git configuration
+cannot rename hunks. A file change with no text hunk (binary, mode or rename only) is one whole-file hunk `h1`. A step has `narration`, `form` (`lines`, `box` or `circle`) and a
 target: either code, `{path, side, startLine, endLine, startCol?, endCol?}` with an optional `expect` string that must
 occur in that range (it catches a range that is valid but points at the wrong code), or a visual element,
 `{visual, element}`. A visual carries its HTML and the list of element ids it declares; targets, links and selection

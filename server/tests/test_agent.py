@@ -11,6 +11,8 @@ from starlette.testclient import WebSocketTestSession
 
 from tests.conftest import FakeClaude, FixtureRepo
 from xenagos import agent as agent_module
+from xenagos import app as app_module
+from xenagos import claude
 from xenagos.access import SECRET_HEADER, Access
 from xenagos.agent import AgentSettings, visible_text
 from xenagos.app import create_app
@@ -443,3 +445,36 @@ def test_new_session_replaces_the_reviews_on_request(target: ReviewTarget, fake_
     assert ReviewStore(target.review_id).load().session == status["session"]  # type: ignore[union-attr]
     [start] = fake_claude.calls("--bg")
     assert start["argv"][-1].endswith("Say in one short sentence that you are ready.")
+
+
+# Session state in the viewer (task 7.7)
+
+
+def test_viewer_hears_when_the_session_changes_state(
+    target: ReviewTarget, fake_claude: FakeClaude, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(app_module, "AGENT_POLL_SECONDS", 0.1)
+    session = fake_claude.add("aaaa1111", status="idle")
+    with client(target) as api, api.websocket_connect(f"ws://127.0.0.1:{PORT}/api/events") as events:
+        api.put("/api/agent/session", json={"session": session})
+        assert events.receive_json() == {"type": "agent"}  # the choice of session
+        time.sleep(0.4)
+        rows = fake_claude.state()["sessions"]
+        rows[0]["status"] = "waiting"
+        fake_claude.write(sessions=rows)
+        assert events.receive_json() == {"type": "agent"}
+        assert api.get("/api/agent").json()["activity"] == "waiting"
+
+
+def test_another_terminal_showing_the_session_is_noticed() -> None:
+    session = claude.Session("aaaa1111-0000", "aaaa1111", "review app feature", "background", True, "idle", None, None)
+    running = [
+        (10, "/opt/claude/bin/claude attach aaaa1111"),
+        (11, "claude attach review app"),
+        (12, "claude attach bbbb2222"),
+        (13, "vim attach aaaa1111"),
+    ]
+    assert claude.attached_elsewhere(session, own={10, 11}, running=running) is False
+    assert claude.attached_elsewhere(session, own={11}, running=running) is True
+    assert claude.attached_elsewhere(session, own={10}, running=running) is True
+    assert claude.attached_elsewhere(session, own=set(), running=running[2:]) is False

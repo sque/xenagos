@@ -19,8 +19,16 @@ export function AgentPane({
     <aside className="agent" aria-label="Agent">
       <header className="agentbar">
         <span className="agentname">{status?.name ?? 'Agent'}</span>
-        {status?.activity != null && <span className="activity">{status.activity}</span>}
+        {status !== null && state(status) !== null && (
+          <span className={`activity ${state(status) ?? ''}`}>{label[state(status) ?? 'idle']}</span>
+        )}
       </header>
+      {attachable && status.shared === true && (
+        <p className="agentnote shared" role="note">
+          This session is also open in another terminal. The two share one display size, so it may look wrong here or
+          there.
+        </p>
+      )}
       {status === null && <p className="agentnote">Asking Claude Code about the review's session…</p>}
       {status?.state === 'none' && (
         <p className="agentnote">
@@ -37,6 +45,25 @@ export function AgentPane({
       {attachable && <Session key={status.session} onEnded={onEnded} />}
     </aside>
   )
+}
+
+type State = 'working' | 'idle' | 'waiting' | 'ended'
+
+const label: Record<State, string> = {
+  working: 'working',
+  idle: 'idle',
+  waiting: 'waiting for you',
+  ended: 'ended',
+}
+
+/** What the session is doing, as the reviewer needs to know it (spec: agent-link, "A question to a busy agent
+ * waits"). Claude Code reports `busy`, `idle` or `waiting` while the session runs. */
+export function state(status: AgentStatus): State | null {
+  if (status.state === 'ended') return 'ended'
+  if (status.state !== 'attachable' && status.state !== 'not-shown') return null
+  if (status.activity === 'waiting') return 'waiting'
+  if (status.activity === 'idle') return 'idle'
+  return status.activity == null ? null : 'working'
 }
 
 /** For a session the pane cannot show: continue that same session here, or start a new one. Either happens only

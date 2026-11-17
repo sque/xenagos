@@ -101,9 +101,11 @@ def create_app(
     @contextlib.asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         watcher = asyncio.create_task(_watch_idle(events, idle, on_idle)) if idle and on_idle else None
+        follower = asyncio.create_task(_follow_agent(agent, events))
         try:
             yield
         finally:
+            follower.cancel()
             if watcher is not None:
                 watcher.cancel()
             for terminal in list(agent.terminals):
@@ -310,6 +312,24 @@ class _MemoryStore(ReviewStore):
 
     def set_session(self, session: str | None, name: str | None = None, cwd: str | None = None) -> None:
         self._session = session
+
+
+AGENT_POLL_SECONDS = 2.0
+
+
+async def _follow_agent(agent: Agent, events: Events) -> None:
+    """While a viewer is open, tell it when the session's state changes: working, idle, waiting for the reviewer,
+    ended, or shown elsewhere (spec: agent-link). Claude Code is asked through `claude agents`, which is cheap."""
+    last: AgentStatus | None = None
+    while True:
+        await asyncio.sleep(AGENT_POLL_SECONDS)
+        if events.viewers == 0 or agent.session_id is None:
+            last = None
+            continue
+        status = await asyncio.to_thread(agent.status)
+        if last is not None and status != last:
+            events.publish({"type": "agent"})
+        last = status
 
 
 async def _watch_idle(events: Events, idle: IdlePolicy, on_idle: Callable[[], None]) -> None:

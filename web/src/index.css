@@ -94,3 +94,9 @@ button { font: inherit; color: inherit; }
 .sessionchoice button { padding: 0.3rem 0.8rem; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: inherit; cursor: pointer; }
 .sessionchoice button:disabled { opacity: 0.6; cursor: default; }
 .agenterror { flex-basis: 100%; margin: 0; color: #f85149; }
+.activity { padding: 0 0.45rem; border-radius: 999px; border: 1px solid #30363d; font-size: 0.75rem; }
+.activity.working { color: #d29922; border-color: #d29922; }
+.activity.waiting { color: #f0883e; border-color: #f0883e; font-weight: 600; }
+.activity.idle { color: #3fb950; border-color: #2ea043; }
+.activity.ended { color: #9198a1; }
+.agentnote.shared { padding: 0.4rem 0.75rem; border-bottom: 1px solid #30363d; color: #d29922; font-size: 0.8rem; }

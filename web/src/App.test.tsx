@@ -3,6 +3,18 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { FakeSocket } from './agent/fakeSocket'
 import { App } from './App'
 
+// The real terminal needs a browser's canvas; it is tested in terminal.browser.test.ts.
+vi.mock('./agent/terminal', () => ({
+  AgentTerminal: class {
+    focus() {
+      return undefined
+    }
+    dispose() {
+      return undefined
+    }
+  },
+}))
+
 beforeEach(() => {
   FakeSocket.all = []
   vi.stubGlobal('WebSocket', FakeSocket)
@@ -110,5 +122,20 @@ test('continues a session that cannot be shown, on request', async () => {
   fireEvent.click(await screen.findByText('Continue it here'))
   expect((await screen.findByRole('alert')).textContent).toBe('Session by-hand is still open in another terminal.')
   expect(fetch.mock.calls.filter(([url]) => url === '/api/agent/continue')).toHaveLength(1)
+  expect(screen.getByText('Start a new session')).toBeDefined()
+})
+
+test('shows what the session is doing and that its display is shared', async () => {
+  const status = { state: 'attachable', session: 's', name: 'worker', activity: 'waiting', shared: true }
+  serve({ '/api/review': json(review), '/api/agent': json(status) })
+  render(<App />)
+  expect(await screen.findByText('waiting for you')).toBeDefined()
+  expect(screen.getByRole('note').textContent).toContain('also open in another terminal')
+})
+
+test('offers a new session when the session has ended', async () => {
+  serve({ '/api/review': json(review), '/api/agent': json({ state: 'ended', name: 'worker', reason: 'The session has stopped.' }) })
+  render(<App />)
+  expect(await screen.findByText('ended')).toBeDefined()
   expect(screen.getByText('Start a new session')).toBeDefined()
 })

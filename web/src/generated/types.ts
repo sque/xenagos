@@ -34,6 +34,10 @@ export interface AgentStatus {
    */
   reason?: string | null;
   session?: string | null;
+  /**
+   * The session is also shown in another terminal.
+   */
+  shared?: boolean;
   state: "none" | "attachable" | "not-shown" | "ended" | "unavailable";
 }
 /**

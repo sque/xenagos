@@ -108,7 +108,8 @@ class Agent:
             return AgentStatus(state="not-shown", reason=reason, **common)
         if not session.running:
             return AgentStatus(state="ended", reason=f"The session has stopped. {CONTINUE_OR_START}", **common)
-        return AgentStatus(state="attachable", **common)
+        own = {terminal.process.pid for terminal in self.terminals}
+        return AgentStatus(state="attachable", shared=claude.attached_elsewhere(session, own), **common)
 
     def attachable(self) -> Session:
         session = self.session()

@@ -433,11 +433,11 @@ against the new head and every step that still matches kept.
   with task 3.3: one trusted parent for all clones does not help (parent trust does not count); options are telling
   the user to run `claude` there once, or not starting sessions in private clones.
 
-- Reading "waiting for the reviewer" from `claude agents --json` (the working and idle states were seen). A session
-  with a Monitor running reports `working`/`busy` even after its turn ended, so that status alone does not mean
-  "has work".
-- Detecting that another terminal has the session open. If it cannot be detected, the shared-display notice is shown
-  whenever the session existed before the review.
+- A session with a Monitor running reports `busy` even after its turn ended, so the viewer would show it as working.
+  (`waiting` for an open permission prompt was seen in the build, as were `busy` and `idle`; the server reads them
+  every two seconds while a viewer is open, which takes about 0.14 s each.)
+- Detecting that another terminal has the session open, beyond `claude attach`. The server looks for `claude attach`
+  processes naming the session other than its own; a session shown in Claude Code's agent view is not detected.
 
 ## Open Questions
 

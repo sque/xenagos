@@ -55,6 +55,7 @@ class AgentStatus(Model):
     session: str | None = None
     name: str | None = None
     activity: str | None = Field(default=None, description="What Claude Code reports while it runs: idle, busy, ...")
+    shared: bool = Field(default=False, description="The session is also shown in another terminal.")
     reason: str | None = Field(default=None, description="Why the pane is empty, for the reviewer.")
 
 

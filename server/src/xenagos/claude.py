@@ -232,6 +232,42 @@ def _backgrounded(result: subprocess.CompletedProcess[str]) -> Session:
     return session
 
 
+def processes() -> list[tuple[int, str]]:
+    """Every process of this machine as (process id, command line)."""
+    try:
+        result = subprocess.run(
+            ["ps", "-axo", "pid=,command="],  # noqa: S607
+            capture_output=True,
+            text=True,
+            timeout=TIMEOUT_SECONDS,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    found = []
+    for line in result.stdout.splitlines():
+        pid, _, command = line.strip().partition(" ")
+        if pid.isdigit():
+            found.append((int(pid), command.strip()))
+    return found
+
+
+_ATTACH = re.compile(r"(?:^|/)claude\s+attach\s+(.+)$")
+
+
+def attached_elsewhere(session: Session, own: set[int], running: list[tuple[int, str]] | None = None) -> bool:
+    """Whether a terminal other than xenagos's own shows the session with `claude attach`. Claude Code keeps one
+    display size per session, so the two then share it (spec: agent-link, "Shared display is disclosed")."""
+    for pid, command in processes() if running is None else running:
+        found = _ATTACH.search(command)
+        if found is None or pid in own:
+            continue
+        named = found.group(1).strip().strip("'\"")
+        if named == session.short_id or (session.name is not None and len(named) >= 3 and named in session.name):
+            return True
+    return False
+
+
 def attach_command(session: Session) -> list[str]:
     if session.short_id is None:
         raise ClaudeError(f"session {session.label} is not a background session and cannot be shown")

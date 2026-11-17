@@ -82,6 +82,11 @@
           ],
           "default": null
         },
+        "shared": {
+          "default": false,
+          "description": "The session is also shown in another terminal.",
+          "type": "boolean"
+        },
         "state": {
           "enum": [
             "none",

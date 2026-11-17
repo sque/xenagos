@@ -8,6 +8,8 @@ never sees half a file, and are readable only by the user.
 
 import contextlib
 import os
+import secrets
+import threading
 import time
 from pathlib import Path
 
@@ -36,6 +38,9 @@ class SavedReview(BaseModel):
     @property
     def target(self) -> ReviewTarget:
         return ReviewTarget(Path(self.repo), self.base, self.head, self.label, self.branch)
+
+
+_WRITING = threading.RLock()
 
 
 def reviews_root() -> Path:
@@ -75,12 +80,14 @@ class ReviewStore:
         return saved
 
     def set_session(self, session: str | None, name: str | None = None, cwd: str | None = None) -> None:
-        saved = self.load()
-        if saved is None:
-            raise FileNotFoundError(f"no saved review {self.review_id}")
-        update = {"session": session, "session_name": name, "session_cwd": cwd}
-        if update != {"session": saved.session, "session_name": saved.session_name, "session_cwd": saved.session_cwd}:
-            self._write("review.json", saved.model_copy(update=update).model_dump_json(indent=2))
+        with _WRITING:  # read, change and write as one step: requests and the state follower run on threads
+            saved = self.load()
+            if saved is None:
+                raise FileNotFoundError(f"no saved review {self.review_id}")
+            update = {"session": session, "session_name": name, "session_cwd": cwd}
+            current = {"session": saved.session, "session_name": saved.session_name, "session_cwd": saved.session_cwd}
+            if update != current:
+                self._write("review.json", saved.model_copy(update=update).model_dump_json(indent=2))
 
     def load_plan(self) -> Plan | None:
         return _read(self.dir / "plan.json", Plan)
@@ -91,7 +98,7 @@ class ReviewStore:
     def _write(self, name: str, text: str) -> None:
         self.dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         final = self.dir / name
-        temp = final.with_name(f".{name}.{os.getpid()}.tmp")
+        temp = final.with_name(f".{name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
         fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         try:
             with os.fdopen(fd, "w") as f:

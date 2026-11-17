@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Walkthrough alternative, repository tree and full files</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+a{color:#2B55C8}a:hover{color:#1E3F99}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; background: #F4F6F9; color: #1B2330; font-family: Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.45">
+
+<div style="height: 48px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #FFFFFF; border-bottom: 1px solid #D9DEE6; white-space: nowrap">
+<span style="font-weight: 600; font-size: 15px">xenagos</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #4A5565">app · feature/batch-timeout against main · 4c1e9a2 to 9d07f31</span>
+<div style="flex-grow: 1"></div>
+<div style="display: flex; gap: 4px; padding: 3px; background: #EEF1F5; border-radius: 8px">
+<button type="button" style="border: 0; background: transparent; color: #4A5565; font: inherit; padding: 5px 14px; border-radius: 6px">Browse</button>
+<button type="button" style="border: 0; background: #FFFFFF; color: #1B2330; font: inherit; font-weight: 600; padding: 5px 14px; border-radius: 6px; box-shadow: 0 1px 2px rgba(20,30,50,0.15)">Walkthrough</button>
+</div>
+</div>
+
+<div style="flex-grow: 1; min-height: 0; display: flex">
+
+<div style="width: 264px; flex: none; display: flex; flex-direction: column; padding: 12px 0; background: #FFFFFF; border-right: 1px solid #D9DEE6; box-sizing: border-box; white-space: nowrap">
+<div style="display: flex; align-items: center; gap: 8px; padding: 0 14px 6px">
+<span style="font-size: 12px; font-weight: 600; color: #4A5565; flex-grow: 1">Repository</span>
+<div style="display: flex; gap: 3px; padding: 2px; background: #EEF1F5; border-radius: 7px; font-size: 11.5px">
+<button type="button" style="border: 0; background: #FFFFFF; color: #1B2330; font: inherit; font-weight: 600; padding: 3px 8px; border-radius: 5px">Changed + visited</button>
+<button type="button" style="border: 0; background: transparent; color: #4A5565; font: inherit; padding: 3px 8px; border-radius: 5px">All</button>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 25px">
+<div style="display: flex; align-items: center; height: 25px; padding: 0 14px 0 8px"><span style="width: 14px; flex: none; color: #6B7686; font-size: 10px">▾</span><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-right: 6px; color: #6B7686"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span style="flex-grow: 1; min-width: 0; color: #1B2330; font-weight: 500">scheduler/</span><span style="font-family: Inter, sans-serif; font-size: 11px; color: #4A5565; margin-right: 10px">3 more</span><span aria-label="contains changes" style="color: #9A5B06; flex: none">●</span></div>
+<div style="display: flex; align-items: center; height: 25px; padding: 0 14px 0 8px; background: #E7EDFB; box-shadow: inset 3px 0 0 #2B55C8"><span aria-hidden="true" style="width: 9px; margin-left: 7px; flex: none; align-self: stretch; border-left: 1px solid #D5DBE3"></span><span style="width: 14px; flex: none"></span><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-right: 6px; opacity: 0.75; color: #1E3F99"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M14 3v5h5"></path></svg><span style="flex-grow: 1; min-width: 0; color: #1E3F99; font-weight: 500">batch.py</span><span style="font-family: Inter, sans-serif; font-size: 11px; color: #1E3F99; margin-right: 10px">you are here</span><span style="color: #9A5B06; font-weight: 600; flex: none">M</span></div>
+<div style="display: flex; align-items: center; height: 25px; padding: 0 14px 0 8px"><span aria-hidden="true" style="width: 9px; margin-left: 7px; flex: none; align-self: stretch; border-left: 1px solid #D5DBE3"></span><span style="width: 14px; flex: none"></span><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-right: 6px; opacity: 0.75; color: #1F6B3B"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M14 3v5h5"></path></svg><span style="flex-grow: 1; min-width: 0; color: #1F6B3B">errors.py</span><span style="color: #1F6B3B; font-weight: 600; flex: none">A</span></div>
+<div style="display: flex; align-items: center; height: 25px; padding: 0 14px 0 8px"><span aria-hidden="true" style="width: 9px; margin-left: 7px; flex: none; align-self: stretch; border-left: 1px solid #D5DBE3"></span><span style="width: 14px; flex: none"></span><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-right: 6px; opacity: 0.75; color: #9B2C2C"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M14 3v5h5"></path></svg><span style="flex-grow: 1; min-width: 0; color: #9B2C2C; text-decoration: line-through">legacy_retry.py</span><span style="color: #9B2C2C; font-weight: 600; flex: none">D</span></div>
+<div style="display: flex; align-items: center; height: 25px; padding: 0 14px 0 8px"><span aria-hidden="true" style="width: 9px; margin-left: 7px; flex: none; align-self: stretch; border-left: 1px solid #D5DBE3"></span><span style="width: 14px; flex: none"></span><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-right: 6px; opacity: 0.75; color: #1B2330"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M14 3v5h5"></path></svg><span style="flex-grow: 1; min-width: 0; color: #1B2330">queue.py</span><span style="font-family: Inter, sans-serif; font-size: 11px; color: #4A5565; margin-right: 0px">visited</span></div>
+<div style="display: flex; align-items: center; height: 25px; padding: 0 14px 0 8px"><span aria-hidden="true" style="width: 9px; margin-left: 7px; flex: none; align-self: stretch; border-left: 1px solid #D5DBE3"></span><span style="width: 14px; flex: none"></span><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-right: 6px; opacity: 0.75; color: #9A5B06"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M14 3v5h5"></path></svg><span style="flex-grow: 1; min-width: 0; color: #9A5B06">settings.py</span><span style="color: #9A5B06; font-weight: 600; flex: none">M</span></div>
+<div style="display: flex; align-items: center; height: 25px; padding: 0 14px 0 8px"><span style="width: 14px; flex: none; color: #6B7686; font-size: 10px">▾</span><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-right: 6px; color: #6B7686"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span style="flex-grow: 1; min-width: 0; color: #1B2330; font-weight: 500">tests/</span><span style="font-family: Inter, sans-serif; font-size: 11px; color: #4A5565; margin-right: 10px">3 more</span><span aria-label="contains changes" style="color: #9A5B06; flex: none">●</span></div>
+<div style="display: flex; align-items: center; height: 25px; padding: 0 14px 0 8px"><span aria-hidden="true" style="width: 9px; margin-left: 7px; flex: none; align-self: stretch; border-left: 1px solid #D5DBE3"></span><span style="width: 14px; flex: none"></span><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-right: 6px; opacity: 0.75; color: #9A5B06"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M14 3v5h5"></path></svg><span style="flex-grow: 1; min-width: 0; color: #9A5B06">test_batch.py</span><span style="color: #9A5B06; font-weight: 600; flex: none">M</span></div>
+<div style="display: flex; align-items: center; height: 25px; padding: 0 14px 0 8px"><span style="width: 14px; flex: none"></span><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-right: 6px; opacity: 0.75; color: #6B7686"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M14 3v5h5"></path></svg><span style="flex-grow: 1; min-width: 0; color: #6B7686">uv.lock</span><span style="font-family: Inter, sans-serif; font-size: 11px; color: #4A5565; margin-right: 10px">generated</span><span style="color: #9A5B06; font-weight: 600; flex: none">M</span></div>
+<div style="display: flex; align-items: center; height: 25px; padding: 0 14px 0 22px; font-family: Inter, sans-serif; font-size: 11.5px; color: #4A5565">12 unchanged files hidden · show all</div>
+</div>
+
+<div style="flex-grow: 1"></div>
+<div style="margin: 0 12px; font-size: 11.5px; color: #4A5565; white-space: normal; line-height: 1.5">
+<span style="font-family: 'JetBrains Mono', monospace; color: #9A5B06; font-weight: 600">M</span> modified · <span style="font-family: 'JetBrains Mono', monospace; color: #1F6B3B; font-weight: 600">A</span> added · <span style="font-family: 'JetBrains Mono', monospace; color: #9B2C2C; font-weight: 600">D</span> deleted<br>Changed but not in this walkthrough: <a href="#s">settings.py</a>, <a href="#l">legacy_retry.py</a>
+</div>
+</div>
+
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px">
+
+<div style="flex: none; position: relative; padding: 8px 12px 8px 14px; background: #FFFFFF; border: 1px solid #D9DEE6; border-radius: 10px; display: flex; align-items: center; gap: 14px">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+<div style="display: flex; align-items: baseline; gap: 10px; white-space: nowrap">
+<span style="font-size: 15px; font-weight: 600">Fail the batch, not the loop</span>
+<span style="font-size: 12px; color: #4A5565">Section 2 of 5 · step 2 of 4</span>
+</div>
+<div style="font-size: 12.5px; color: #4A5565; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">An error or a timeout now ends only the batch that caused it; the loop goes on.</div>
+</div>
+<div style="display: flex; align-items: center; gap: 5px; flex: none">
+<button type="button" aria-label="Previous step" style="width: 30px; height: 30px; flex: none; display: flex; align-items: center; justify-content: center; border: 1px solid #D9DEE6; background: #FFFFFF; color: #1B2330; border-radius: 8px; padding: 0"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button>
+<button type="button" aria-label="Pause" style="width: 30px; height: 30px; flex: none; display: flex; align-items: center; justify-content: center; border: 0; background: #2B55C8; color: #FFFFFF; border-radius: 8px; padding: 0"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5v14"></path><path d="M15 5v14"></path></svg></button>
+<button type="button" aria-label="Next step" style="width: 30px; height: 30px; flex: none; display: flex; align-items: center; justify-content: center; border: 1px solid #D9DEE6; background: #FFFFFF; color: #1B2330; border-radius: 8px; padding: 0"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button>
+<span style="width: 6px"></span>
+<button type="button" aria-label="Replay this step" style="width: 30px; height: 30px; flex: none; display: flex; align-items: center; justify-content: center; border: 1px solid #D9DEE6; background: #FFFFFF; color: #1B2330; border-radius: 8px; padding: 0"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2"></path><path d="M4 4v5h5"></path></svg></button>
+<button type="button" aria-label="Voice and narration settings" style="width: 30px; height: 30px; flex: none; display: flex; align-items: center; justify-content: center; border: 1px solid #D9DEE6; background: #FFFFFF; color: #1B2330; border-radius: 8px; padding: 0"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h4l5 4V6L8 10H4z"></path><path d="M17 9a4 4 0 0 1 0 6"></path></svg></button>
+</div>
+</div>
+
+<div style="flex: none; padding: 12px 16px; background: #FFFFFF; border: 1px solid #D9DEE6; border-radius: 10px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; gap: 8px; white-space: nowrap">
+<span style="font-weight: 600; font-size: 13px">What happens to one batch</span>
+<span style="font-size: 12px; color: #4A5565">try it</span>
+</div>
+<div style="display: flex; gap: 22px; align-items: center">
+<div style="width: 236px; flex: none; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; white-space: nowrap">
+<div style="display: flex; align-items: center; gap: 8px"><label for="dur" style="width: 86px; flex: none">Handler takes</label><input id="dur" type="range" min="0" max="10" value="7" style="flex-grow: 1; min-width: 0; accent-color: #2B55C8"><span style="width: 38px; flex: none; text-align: right; font-family: 'JetBrains Mono', monospace">7.0 s</span></div>
+<div style="display: flex; align-items: center; gap: 8px"><label for="tmo" style="width: 86px; flex: none">Timeout</label><input id="tmo" type="range" min="0" max="10" value="5" style="flex-grow: 1; min-width: 0; accent-color: #2B55C8"><span style="width: 38px; flex: none; text-align: right; font-family: 'JetBrains Mono', monospace">5.0 s</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; white-space: nowrap">
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="padding: 6px 10px; border: 1px solid #9AA6B8; border-radius: 6px">collect 3</span>
+<span style="color: #4A5565">→</span>
+<span style="padding: 5px 10px; border: 2px solid #B4530A; border-radius: 6px; font-weight: 600">run handler</span>
+<span style="color: #8A3F07">→ timeout at 5.0 s</span>
+</div>
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="padding: 6px 10px; border: 1px dashed #B4530A; border-radius: 6px; background: #FFF7ED">fail this batch</span>
+<span style="color: #4A5565">→</span>
+<span style="padding: 6px 10px; border: 1px solid #9AA6B8; border-radius: 6px">3 callers get the error</span>
+<span style="color: #4A5565">→ loop goes on</span>
+</div>
+</div>
+</div>
+<div style="font-size: 11.5px; color: #4A5565">Before this change, same numbers: the loop stops and every later caller waits forever. Dashed is new. Click a box to see its code.</div>
+</div>
+
+<div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; background: #FFFFFF; border: 1px solid #D9DEE6; border-radius: 10px; overflow: hidden">
+<div style="flex: none; display: flex; align-items: center; gap: 10px; padding: 7px 14px; border-bottom: 1px solid #D9DEE6; font-size: 12px; white-space: nowrap">
+<span style="font-family: 'JetBrains Mono', monospace">scheduler/batch.py</span>
+<span style="color: #4A5565">whole file · 212 lines · 3 changes</span>
+<div style="flex-grow: 1"></div>
+</div>
+
+<div style="position: relative; flex-grow: 1; min-height: 0; overflow: hidden; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 21px; white-space: pre; padding: 6px 0">
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">120</span><span>class BatchScheduler:</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">121</span><span> </span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">122</span><span>    async def run(self) -> None:</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">123</span><span>        """Collect requests into batches and run the handler."""</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">124</span><span>        self._started.set()</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">125</span><span> </span></div>
+<div style="display: flex; background: #DCE6FB"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #1E3F99">126</span><span>        while not self._closed:</span></div>
+<div style="display: flex; background: #DCE6FB"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #1E3F99">127</span><span>            batch = await self._collect()</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">128</span><span>            if not batch:</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">129</span><span>                continue</span></div>
+<div style="display: flex; background: #FBE9E9; color: #7A2222"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #9B2C2C">−</span><span>            results = await self._handler(batch)</span></div>
+
+<div style="margin: 2px 22px 0 36px; border: 2px solid #B4530A; border-radius: 6px; background: #E4F3E8; box-shadow: inset 3px 0 0 #2E8B57">
+<div style="display: flex"><span style="width: 0; flex: none; position: relative"><span style="position: absolute; right: 8px; color: #1F6B3B">130</span></span><span>          try:</span></div>
+<div style="display: flex"><span style="width: 0; flex: none; position: relative"><span style="position: absolute; right: 8px; color: #1F6B3B">131</span></span><span>              results = await asyncio.wait_for(self._handler(batch), self._timeout)</span></div>
+<div style="display: flex"><span style="width: 0; flex: none; position: relative"><span style="position: absolute; right: 8px; color: #1F6B3B">132</span></span><span>          except Exception as exc:</span></div>
+<div style="display: flex"><span style="width: 0; flex: none; position: relative"><span style="position: absolute; right: 8px; color: #1F6B3B">133</span></span><span>              self._fail(batch, exc)</span></div>
+<div style="display: flex"><span style="width: 0; flex: none; position: relative"><span style="position: absolute; right: 8px; color: #1F6B3B">134</span></span><span>              continue</span></div>
+</div>
+
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">135</span><span>            for request, result in zip(batch, results, strict=True):</span></div>
+<div style="display: flex; background: #FBE9E9; color: #7A2222"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #9B2C2C">−</span><span>                self._futures.pop(request.request_id).set_result(result)</span></div>
+<div style="display: flex; background: #E4F3E8; box-shadow: inset 3px 0 0 #2E8B57"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #1F6B3B">136</span><span>                self._resolve(request, result)</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">137</span><span> </span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">138</span><span>    async def _collect(self) -> list[Request]:</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">139</span><span>        batch = [await self._queue.get()]</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">140</span><span>        deadline = time.monotonic() + self._wait</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">141</span><span>        while len(batch) &lt; self._max_batch:</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">142</span><span>            remaining = deadline - time.monotonic()</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">143</span><span>            if remaining &lt;= 0:</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">144</span><span>                break</span></div>
+<div style="display: flex"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #6B7686">145</span><span>            try:</span></div>
+
+<div style="position: absolute; right: 26px; top: 88px; width: 320px; padding: 10px; background: #FFFFFF; border: 1px solid #2B55C8; border-radius: 10px; box-shadow: 0 8px 22px rgba(20,30,50,0.18); font-family: Inter, sans-serif; white-space: normal; display: flex; flex-direction: column; gap: 6px">
+<label for="ask" style="font-size: 12px; color: #1E3F99">Ask about the selected lines, 126 to 127</label>
+<div style="display: flex; gap: 8px">
+<input id="ask" type="text" value="who sets _closed?" style="flex-grow: 1; min-width: 0; height: 34px; box-sizing: border-box; border: 1px solid #C9D2DF; border-radius: 8px; padding: 0 10px; font: 13.5px Inter, sans-serif; color: #1B2330">
+<button type="button" style="height: 34px; flex: none; padding: 0 14px; border: 0; background: #2B55C8; color: #FFFFFF; border-radius: 8px; font: 600 13.5px Inter, sans-serif">Send</button>
+</div>
+<div style="font-size: 11.5px; color: #4A5565">Goes to the agent as your message. Playback pauses.</div>
+</div>
+<div aria-hidden="true" style="position: absolute; top: 0; right: 0; bottom: 0; width: 12px; background: #F4F6F9; border-left: 1px solid #E6EAF0"></div>
+<div aria-hidden="true" style="position: absolute; right: 2px; top: 226px; width: 8px; height: 84px; border-radius: 4px; background: #B9C2CF"></div>
+<div aria-hidden="true" style="position: absolute; right: 0; top: 262px; width: 12px; height: 3px; background: #9B2C2C"></div>
+<div aria-hidden="true" style="position: absolute; right: 0; top: 266px; width: 12px; height: 9px; background: #2E8B57"></div>
+<div aria-hidden="true" style="position: absolute; right: 0; top: 279px; width: 12px; height: 3px; background: #2E8B57"></div>
+<div aria-hidden="true" style="position: absolute; right: 0; top: 318px; width: 12px; height: 8px; background: #2E8B57"></div>
+
+<div style="position: absolute; right: 26px; top: 354px; width: 372px; padding: 10px 14px; background: #FFF7ED; border: 1px solid #B4530A; border-radius: 10px; box-shadow: 0 10px 26px rgba(20,30,50,0.22); font-family: Inter, sans-serif; font-size: 13.5px; line-height: 1.5; white-space: normal; color: #1B2330">
+<div aria-hidden="true" style="position: absolute; top: -7px; right: 48px; width: 12px; height: 12px; background: #FFF7ED; border-left: 1px solid #B4530A; border-top: 1px solid #B4530A; transform: rotate(45deg)"></div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 600; color: #8A3F07; margin-bottom: 3px"><span>Step 2 · now speaking</span><button type="button" style="border: 0; background: transparent; color: #8A3F07; font: 11px Inter, sans-serif; padding: 0">Hide</button></div>
+This is the heart of it. I wrapped the call so that when the handler throws, or runs past the timeout, we give up on this one batch and go straight back to collecting. Remember the loop from a moment ago: before, that same error ended it for everyone.
+</div>
+</div>
+</div>
+</div>
+
+<div style="width: 400px; flex: none; display: flex; flex-direction: column; border-left: 1px solid #D9DEE6">
+<div style="flex: none; display: flex; flex-direction: column; padding: 12px 0 10px; background: #FFFFFF; border-bottom: 1px solid #D9DEE6; white-space: nowrap">
+<div style="font-size: 12px; font-weight: 600; color: #4A5565; padding: 0 14px 6px">Walkthrough</div>
+<div style="display: flex; flex-direction: column; font-size: 13px; line-height: 27px">
+<div style="display: flex; gap: 8px; padding: 0 14px; color: #4A5565"><span style="width: 10px"> </span><span style="flex-grow: 1">The problem</span><span style="font-size: 11px">from commit messages</span></div>
+<div style="display: flex; gap: 8px; padding: 0 14px; color: #4A5565"><span style="font-family: 'JetBrains Mono', monospace; width: 10px">1</span><span style="flex-grow: 1">How a batch runs today</span><span style="font-size: 11px">done</span></div>
+<div style="display: flex; gap: 8px; padding: 0 14px; font-weight: 600"><span style="font-family: 'JetBrains Mono', monospace; width: 10px">2</span><span style="flex-grow: 1">Fail the batch, not the loop</span><span style="font-size: 11px; font-weight: 400; color: #4A5565">core</span></div>
+<div style="display: flex; gap: 8px; padding: 0 14px 0 32px; font-size: 12px; line-height: 24px; color: #4A5565"><span style="width: 12px">✓</span><span style="flex-grow: 1">The old call, unguarded</span></div>
+<div style="display: flex; gap: 8px; padding: 0 14px 0 32px; font-size: 12px; line-height: 24px; background: #E7EDFB; color: #1E3F99; font-weight: 600; box-shadow: inset 3px 0 0 #2B55C8"><span style="width: 12px">▸</span><span style="flex-grow: 1">The new try block</span><span style="font-weight: 400">speaking</span></div>
+<div style="display: flex; gap: 8px; padding: 0 14px 0 32px; font-size: 12px; line-height: 24px"><span style="width: 12px; color: #9AA6B8">○</span><span style="flex-grow: 1">Where the failure is reported</span></div>
+<div style="display: flex; gap: 8px; padding: 0 14px 0 32px; font-size: 12px; line-height: 24px"><span style="width: 12px; color: #9AA6B8">○</span><span style="flex-grow: 1">Collecting is untouched</span><span style="color: #4A5565">unchanged</span></div>
+<div style="display: flex; gap: 8px; padding: 0 14px"><span style="font-family: 'JetBrains Mono', monospace; width: 10px">3</span><span style="flex-grow: 1">Every waiter hears about it</span><span style="font-size: 11px; color: #4A5565">core</span></div>
+<div style="display: flex; gap: 8px; padding: 0 14px"><span style="font-family: 'JetBrains Mono', monospace; width: 10px">4</span><span style="flex-grow: 1">Timeout becomes a setting</span><span style="font-size: 11px; color: #4A5565">consequence</span></div>
+<div style="display: flex; gap: 8px; padding: 0 14px"><span style="font-family: 'JetBrains Mono', monospace; width: 10px">5</span><span style="flex-grow: 1">Tests for both failure paths</span><span style="font-size: 11px; color: #4A5565">support</span></div>
+</div>
+</div>
+<div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; background: #10151C; color: #D7DEE8">
+<div style="flex: none; display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: #1A212B; font-size: 12.5px; white-space: nowrap">
+<span style="font-weight: 600; color: #FFFFFF">Agent</span>
+<span style="color: #AAB5C4">review app feature/batch-timeout</span>
+<div style="flex-grow: 1"></div>
+<span style="color: #7FD6A0">idle</span>
+</div>
+<div style="flex-grow: 1; min-height: 0; padding: 12px 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 20px; white-space: pre; overflow: hidden">
+<div style="color: #8FA3BD">❯ [review: batch.py 130-131 new, section 2]</div>
+<div style="color: #8FA3BD">  what happens to requests already waiting</div>
+<div style="color: #8FA3BD">  when it times out?</div>
+<div> </div>
+<div><span style="color: #7FD6A0">⏺</span> They are failed together. _fail walks the</div>
+<div>  batch and sets the same error on each waiter,</div>
+<div>  so no caller hangs. Showing you that now.</div>
+<div> </div>
+<div style="color: #AAB5C4">⏺ Bash(xen show scheduler/batch.py:154-158)</div>
+<div style="color: #AAB5C4">  ⎿  shown in viewer</div>
+<div> </div>
+<div style="color: #AAB5C4">✻ Worked for 9s</div>
+<div> </div>
+<div><span style="color: #FFFFFF">❯ </span><span style="background: #D7DEE8; color: #10151C"> </span></div>
+</div>
+<div style="flex: none; padding: 8px 14px; background: #1A212B; color: #AAB5C4; font-size: 12px">Claude Code's own interface. Type here, or ask from a selection.</div>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

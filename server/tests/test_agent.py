@@ -192,6 +192,21 @@ def test_pane_attaches_and_passes_keys_and_size(target: ReviewTarget, fake_claud
     assert call["argv"] == ["attach", "aaaa1111"]
 
 
+def test_attach_program_ends_when_the_viewer_leaves(target: ReviewTarget, fake_claude: FakeClaude) -> None:
+    session = fake_claude.add("aaaa1111")
+    api = client(target)
+    api.put("/api/agent/session", json={"session": session})
+    agent = api.app.state.agent  # type: ignore[attr-defined]
+    with terminal(api) as socket:
+        read_until(socket, "attached")
+        [attached] = agent.terminals
+    deadline = time.monotonic() + 10
+    while (agent.terminals or attached.process.poll() is None) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert agent.terminals == []
+    assert attached.process.poll() is not None
+
+
 def test_question_is_pasted_and_submitted(target: ReviewTarget, fake_claude: FakeClaude) -> None:
     session = fake_claude.add("aaaa1111")
     api = client(target)
@@ -206,6 +221,19 @@ def test_question_is_pasted_and_submitted(target: ReviewTarget, fake_claude: Fak
     reference = f"[xenagos review {target.review_id}] app.py line 1 (head) \\xc2\\xb7 section 1, step 2"
     # The question's own escape characters are gone, so its fake paste end did not end the paste.
     assert f"got b'\\x1b[200~{reference}\\nwhat[201~]0;x is\\nthis?\\x1b[201~'" in seen
+
+
+def test_nothing_is_typed_while_the_session_waits_for_an_answer(target: ReviewTarget, fake_claude: FakeClaude) -> None:
+    session = fake_claude.add("aaaa1111", status="waiting")
+    api = client(target)
+    api.put("/api/agent/session", json={"session": session})
+    with terminal(api) as socket:
+        read_until(socket, "attached")
+        answer = api.post("/api/agent/ask", json=question())
+        assert answer.status_code == 409
+        assert "waiting for your answer" in answer.json()["detail"]
+        socket.send_text(json.dumps({"type": "input", "data": "x"}))
+        assert "200~" not in read_until(socket, "got b'x'")  # the question before it was never typed
 
 
 def test_question_needs_the_pane(target: ReviewTarget, fake_claude: FakeClaude) -> None:

@@ -8,7 +8,7 @@ import { ask } from './api'
 
 export interface AskAt {
   selection: LineSelection
-  /** Where the selection ended, in viewport coordinates. */
+  /** Where the prompt opens: its horizontal middle and its top, in viewport coordinates. */
   x: number
   y: number
 }
@@ -45,7 +45,7 @@ export function AskPrompt(props: {
   }
 
   const left = Math.max(8, Math.min(props.at.x - WIDTH / 2, window.innerWidth - WIDTH - 8))
-  const top = Math.min(props.at.y + 12, window.innerHeight - 160)
+  const top = Math.min(props.at.y + 6, window.innerHeight - 170)
   return (
     <form
       className="askprompt"

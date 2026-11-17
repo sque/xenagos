@@ -162,6 +162,12 @@ class Agent:
             status = await asyncio.to_thread(self.status)
             if status.state != "attachable":
                 raise AgentError(409, status.reason or "the review's session cannot receive messages")
+            if status.activity == "waiting":
+                # A permission prompt or a question is open in the session. The Enter that submits a message would
+                # answer it with its highlighted choice, which is often "Yes".
+                raise AgentError(
+                    409, "The agent is waiting for your answer in its pane. Answer it there, then send again."
+                )
             terminal = self._newest_terminal()
             if terminal is None:
                 raise AgentError(409, "The agent pane is not open. Open it, then send again.")

@@ -48,19 +48,13 @@ export function Walkthrough({ plan, pointing }: { plan: Plan; pointing: Pointing
       overlay.redraw()
     })
     resize.observe(scroller)
-    // The library reports a finished selection from its own pointer handler; this one runs first (capture phase),
-    // so the prompt can open where the pointer was released.
-    const pointer = { x: 0, y: 0 }
-    const remember = (event: PointerEvent) => {
-      pointer.x = event.clientX
-      pointer.y = event.clientY
-    }
-    panel.addEventListener('pointerup', remember, { capture: true })
+    // The prompt opens under the selection's last line, where the reviewer is looking.
     view.onSelect = (selection) => {
       if (selection === null) return
-      const fallback = scroller.getBoundingClientRect()
-      const at = pointer.x === 0 && pointer.y === 0 ? { x: fallback.left + 80, y: fallback.top + 80 } : pointer
-      setAskAt({ selection, x: at.x, y: at.y })
+      const row = view.rows(selection.endSide, selection.endLine, selection.endLine)[0]
+      const bounds = (row ?? scroller).getBoundingClientRect()
+      const code = scroller.getBoundingClientRect()
+      setAskAt({ selection, x: code.left + Math.min(code.width / 2, 220), y: row ? bounds.bottom : bounds.top + 80 })
     }
     const first = plan.sections[0].steps[0].target
     if ('path' in first) {
@@ -68,7 +62,6 @@ export function Walkthrough({ plan, pointing }: { plan: Plan; pointing: Pointing
     }
     return () => {
       player.stop()
-      panel.removeEventListener('pointerup', remember, { capture: true })
       resize.disconnect()
       view.destroy()
       engine.current = null

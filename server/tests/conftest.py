@@ -98,7 +98,15 @@ class FakeClaude:
     def write(self, **changes: Any) -> None:
         self.state_file.write_text(json.dumps(self.state() | changes))
 
-    def add(self, short: str, *, kind: str = "background", running: bool = True, name: str | None = None) -> str:
+    def add(
+        self,
+        short: str,
+        *,
+        kind: str = "background",
+        running: bool = True,
+        name: str | None = None,
+        status: str = "idle",
+    ) -> str:
         """Add a session and return its full id."""
         session_id = f"{short}-0000-4000-8000-000000000000"
         row: dict[str, Any] = {"cwd": str(Path.home()), "kind": kind, "sessionId": session_id}
@@ -106,7 +114,7 @@ class FakeClaude:
         if kind == "background":
             row["id"] = short
         if running:
-            row |= {"pid": os.getpid(), "status": "idle"}
+            row |= {"pid": os.getpid(), "status": status}
         self.write(sessions=[*self.state()["sessions"], row])
         return session_id
 

@@ -265,9 +265,12 @@ def create_app(
             await socket.close()
             return
         agent.terminals.append(terminal)
-        await _bridge(socket, terminal)
-        agent.terminals.remove(terminal)
-        await terminal.close()
+        try:
+            await _bridge(socket, terminal)
+        finally:
+            # The attach program ends with the viewer; the session it shows keeps running.
+            agent.terminals.remove(terminal)
+            await terminal.close()
 
     # Keep this last: a mount at "/" answers for every route added after it, WebSockets included.
     if viewer_dir is None:
@@ -340,5 +343,6 @@ async def _bridge(socket: WebSocket, terminal: Terminal) -> None:
         for task in tasks:
             with contextlib.suppress(asyncio.CancelledError, WebSocketDisconnect, RuntimeError):
                 await task
-        with contextlib.suppress(RuntimeError):
+        # Closing a socket the viewer already closed raises WebSocketDisconnect (Starlette 1.x) or RuntimeError.
+        with contextlib.suppress(RuntimeError, WebSocketDisconnect):
             await socket.close()

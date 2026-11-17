@@ -69,6 +69,70 @@
       "title": "CodeTarget",
       "type": "object"
     },
+    "FileView": {
+      "additionalProperties": false,
+      "description": "A file at both pinned revisions, for the whole-file view. Text is absent when the file does not exist at that\nrevision or is binary.",
+      "properties": {
+        "base": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "binary": {
+          "type": "boolean"
+        },
+        "head": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "oldPath": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "renamed",
+            "copied",
+            "type-changed",
+            "unchanged"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "oldPath",
+        "status",
+        "binary",
+        "base",
+        "head"
+      ],
+      "title": "FileView",
+      "type": "object"
+    },
     "Orientation": {
       "additionalProperties": false,
       "properties": {
@@ -124,6 +188,23 @@
         "sections"
       ],
       "title": "Plan",
+      "type": "object"
+    },
+    "PlanRejection": {
+      "additionalProperties": false,
+      "description": "Why a submitted plan was not accepted; each problem names the plan item it concerns.",
+      "properties": {
+        "problems": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "problems"
+      ],
+      "title": "PlanRejection",
       "type": "object"
     },
     "ReviewInfo": {

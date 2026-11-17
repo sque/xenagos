@@ -11,3 +11,4 @@ node_modules/
 
 # Built viewer, bundled into the Python package at build time
 server/src/xenagos/static/
+web/.vitest/

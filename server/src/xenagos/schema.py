@@ -9,12 +9,20 @@ from typing import Any
 
 from pydantic.json_schema import models_json_schema
 
-from xenagos.api import ReviewInfo
+from xenagos.api import FileView, PlanRejection, ReviewInfo
 from xenagos.plan import Plan
 
 
 def export() -> dict[str, Any]:
-    _, schema = models_json_schema([(Plan, "validation"), (ReviewInfo, "serialization")], title="xenagos")
+    _, schema = models_json_schema(
+        [
+            (Plan, "validation"),
+            (ReviewInfo, "serialization"),
+            (FileView, "serialization"),
+            (PlanRejection, "serialization"),
+        ],
+        title="xenagos",
+    )
     for definition in schema["$defs"].values():
         for prop in definition.get("properties", {}).values():
             # Property titles are derived from the key and would become one type alias per property.

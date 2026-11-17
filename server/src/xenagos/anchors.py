@@ -5,11 +5,10 @@ name a text file that exists at its side, lines inside it, columns inside those 
 All problems are reported together, each naming the plan item, so the agent can fix them in one go.
 """
 
-from dataclasses import dataclass, field
-from pathlib import Path
+from dataclasses import dataclass
 
-from xenagos import git
 from xenagos.diff import FileChange
+from xenagos.files import RevisionFiles
 from xenagos.plan import CodeTarget, Plan, Section
 from xenagos.target import ReviewTarget
 
@@ -23,38 +22,10 @@ class Problem:
         return f"{self.where}: {self.message}"
 
 
-_BINARY = object()
-
-
-@dataclass
-class RevisionFiles:
-    """File contents at pinned revisions, read once each."""
-
-    repo: Path
-    _cache: dict[tuple[str, str], list[str] | object | None] = field(default_factory=dict)
-
-    def lines(self, revision: str, path: str) -> list[str] | object | None:
-        """The file's lines, `_BINARY` for a binary file, or None when it does not exist at that revision."""
-        key = (revision, path)
-        if key not in self._cache:
-            self._cache[key] = self._read(revision, path)
-        return self._cache[key]
-
-    def _read(self, revision: str, path: str) -> list[str] | object | None:
-        data = git.try_run_bytes(self.repo, "cat-file", "blob", f"{revision}:{path}")
-        if data is None:
-            return None
-        if b"\0" in data[:8000]:
-            return _BINARY
-        text = data.decode("utf-8", errors="replace")
-        lines = text.split("\n")
-        if text.endswith("\n"):
-            lines.pop()
-        return [line.removesuffix("\r") for line in lines]
-
-
-def check(plan: Plan, target: ReviewTarget, changes: list[FileChange]) -> list[Problem]:
-    files = RevisionFiles(target.repo)
+def check(
+    plan: Plan, target: ReviewTarget, changes: list[FileChange], files: RevisionFiles | None = None
+) -> list[Problem]:
+    files = files or RevisionFiles(target.repo)
     problems: list[Problem] = []
     hunks = {hunk.id for change in changes for hunk in change.hunks}
     claimed_by: dict[str, int] = {}

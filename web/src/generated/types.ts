@@ -22,6 +22,21 @@ export interface CodeTarget {
   startLine: number;
 }
 /**
+ * A file at both pinned revisions, for the whole-file view. Text is absent when the file does not exist at that
+ * revision or is binary.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "FileView".
+ */
+export interface FileView {
+  base: string | null;
+  binary: boolean;
+  head: string | null;
+  oldPath: string | null;
+  path: string;
+  status: "added" | "modified" | "deleted" | "renamed" | "copied" | "type-changed" | "unchanged";
+}
+/**
  * This interface was referenced by `Root`'s JSON-Schema
  * via the `definition` "Orientation".
  */
@@ -115,6 +130,15 @@ export interface VisualElement {
    * Code shown when the reviewer activates the element.
    */
   link?: CodeTarget | null;
+}
+/**
+ * Why a submitted plan was not accepted; each problem names the plan item it concerns.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "PlanRejection".
+ */
+export interface PlanRejection {
+  problems: string[];
 }
 /**
  * This interface was referenced by `Root`'s JSON-Schema

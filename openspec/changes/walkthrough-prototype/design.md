@@ -139,8 +139,22 @@ sessions then edit the same files and decisions made in review never reach the o
 ### 5. Viewer
 
 `@pierre/diffs`, pinned to an exact version, for diffs and full files, behind an adapter module so the library can be
-replaced. Line highlight uses the library's line selection. Box and circle spotlights are drawn on an overlay layer
-positioned from the rendered line and character rectangles; this is not a library feature and is the first spike.
+replaced. All three spotlight forms (lines, box, circle) are drawn on an overlay layer positioned from the rendered line
+and character rectangles; this is not a library feature and is the first spike. (The first draft used the library's
+line selection for the lines form; it is drawn on the overlay instead so that the reviewer's own line selection,
+used for questions, stays free.)
+
+Found while building it (2026-11-17, `@pierre/diffs` 1.6.4, `web/src/codeview/`):
+
+- The file container must be the library's `<diffs-container>` element; in a plain element its styles do not apply.
+- The overlay layer is a zero-size flex item appended to `code[data-code]`, positioned relative, with marks inside it.
+  The code element itself must not be made a positioned box: the virtualiser measures offsets through it and then
+  renders the wrong window.
+- The highlighter is preloaded for the file's language before the first render. Rendering before it has loaded makes
+  the virtualiser jump to the end of the scroll container once highlighting arrives.
+- A file the change did not touch gives a diff with no hunks, which renders nothing; it is shown with the library's
+  virtualised single-file component instead.
+- `expandHunk(i, direction)` names the collapsed region before hunk `i`; `up` reveals its first lines, `down` its last.
 
 ### 5b. Walkthrough layout (approved from mockups, 2026-11-13)
 

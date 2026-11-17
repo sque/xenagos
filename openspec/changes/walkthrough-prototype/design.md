@@ -412,6 +412,17 @@ reviewer checks the fix in the agent pane and commits after the review (spec `ag
 the walkthrough"). In the private checkout the session says its edits are not in the user's checkout, because
 `xen clean` removes them.
 
+Found in the build (Claude Code 2.1.326): a background session does not edit the shared checkout; Claude Code puts
+its edits in a git worktree under `.claude/worktrees/` in the repository, on a branch of its own, and `claude rm`
+keeps a worktree that has uncommitted changes. A fix asked for during a review therefore lands in that worktree, not
+in the user's checkout. The skill tells the session to say where the fix is and how to bring it over. Whether to
+show worktree fixes in the viewer is a later change.
+
+The skill ships inside the package as a Claude Code plugin (`xenagos/plugin`). Sessions xenagos starts or continues
+load it with `--plugin-dir` and get this installation's `xen` first on their PATH (a background session receives the
+caller's PATH, not other variables), so nothing is installed in the user's configuration. `xen skill install` copies
+the skill into `~/.claude/skills` for the user's own sessions, on their request.
+
 Later change: carry a plan over to a new head. Steps already store `expect` text, so the old plan can be validated
 against the new head and every step that still matches kept.
 

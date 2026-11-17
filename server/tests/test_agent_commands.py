@@ -70,6 +70,7 @@ def test_agent_opens_a_review_and_writes_its_walkthrough(
     assert status == 0
     assert "# Writing a xenagos walkthrough" in out
     assert "app.py:h1  base line 1  head line 1" in out
+    assert f"Repository: {target.repo}" in out
     assert "lib.py: added" in out
 
     status, out, _ = xen(capsys, "plan", "submit", write(tmp_path, "plan.json", SAMPLE))

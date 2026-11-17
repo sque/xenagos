@@ -54,6 +54,8 @@ export function Walkthrough({ plan, pointing }: { plan: Plan; pointing: Pointing
       const row = view.rows(selection.endSide, selection.endLine, selection.endLine)[0]
       const bounds = (row ?? scroller).getBoundingClientRect()
       const code = scroller.getBoundingClientRect()
+      // Asking pauses playback at the step the reviewer is on, before they start typing (spec: agent-link).
+      player.pause()
       setAskAt({ selection, x: code.left + Math.min(code.width / 2, 220), y: row ? bounds.bottom : bounds.top + 80 })
     }
     const first = plan.sections[0].steps[0].target
@@ -171,7 +173,9 @@ export function Walkthrough({ plan, pointing }: { plan: Plan; pointing: Pointing
             key={`${askAt.selection.path}:${String(askAt.selection.startLine)}:${String(askAt.selection.endLine)}`}
             at={askAt}
             position={{ section: state.section + 1, step: state.step + 1 }}
-            onAsking={() => engine.current?.player.pause()}
+            onAsking={() => {
+              engine.current?.player.pause()
+            }}
             onClose={() => {
               setAskAt(null)
               engine.current?.view.clearSelection()

@@ -1,0 +1,5 @@
+{
+  "name": "xenagos",
+  "description": "Teaches a Claude Code session to open xenagos reviews, write their walkthroughs, and point at code in the reviewer's viewer.",
+  "version": "0.1.0"
+}

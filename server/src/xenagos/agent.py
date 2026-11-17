@@ -146,8 +146,8 @@ class Agent:
         )
 
     def extra_arguments(self) -> list[str]:
-        """Arguments for every session xenagos starts or continues."""
-        return []
+        """Arguments for every session xenagos starts or continues: the skill that teaches it the `xen` commands."""
+        return ["--plugin-dir", str(claude.plugin_dir())]
 
     def _start(self, message: str) -> Session:
         prompt = f"{self.introduction()}\n\n{message}"

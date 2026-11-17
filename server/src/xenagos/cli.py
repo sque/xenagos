@@ -60,7 +60,8 @@ def review_parser() -> argparse.ArgumentParser:
         prog="xen",
         description="Open a review of a code change. With no target: the current branch against the default branch.",
         epilog="Targets: A...B (from the fork point), A..B (directly), REV (one commit), or --base BRANCH. "
-        "Other commands: xen list, xen stop, xen open; for agents: xen guide, plan, narration, show, step, visual.",
+        "Other commands: xen list, xen stop, xen open, xen skill; "
+        "for agents: xen guide, plan, narration, show, step, visual.",
     )
     parser.add_argument("--version", action="version", version=f"xen {__version__}")
     target_arguments(parser)
@@ -373,7 +374,9 @@ def cmd_guide(argv: Sequence[str]) -> int:
         return 0
     saved = ReviewStore(entry.review_id).load()
     if saved is not None:
-        print(f"Review {saved.review_id}: {saved.label}\n")
+        print(f"Review {saved.review_id}: {saved.label}")
+        print(f"Repository: {saved.repo}")
+        print(f"Base: {saved.base}  Head: {saved.head}\n")
         print(hunk_list(changes(Path(saved.repo), saved.base, saved.head)), end="")
     return 0
 
@@ -512,6 +515,37 @@ def cmd_visual(argv: Sequence[str]) -> int:
     return 0
 
 
+def cmd_skill(argv: Sequence[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="xen skill",
+        description="The Claude Code skill that teaches a session the xen commands. Sessions xenagos starts load it "
+        "by themselves; install it to use xenagos from your own sessions.",
+    )
+    sub = parser.add_subparsers(dest="action", required=True)
+    sub.add_parser("path", help="print the plugin folder, for `claude --plugin-dir`")
+    install = sub.add_parser("install", help="copy the skill into a Claude Code skills folder")
+    install.add_argument("--dir", type=Path, help="skills folder (default: ~/.claude/skills)")
+    install.add_argument("--force", action="store_true", help="replace a different skill of the same name")
+    args = parser.parse_args(argv)
+    plugin = claude.plugin_dir()
+    if args.action == "path":
+        print(plugin)
+        return 0
+    source = plugin / "skills" / "xenagos"
+    target = (args.dir or Path.home() / ".claude" / "skills") / "xenagos"
+    new = (source / "SKILL.md").read_text()
+    existing = target / "SKILL.md"
+    if existing.is_file() and existing.read_text() == new:
+        print(f"The skill is already installed in {target}")
+        return 0
+    if existing.is_file() and not args.force:
+        raise CommandError(f"{target} holds a different xenagos skill; use --force to replace it")
+    target.mkdir(parents=True, exist_ok=True)
+    existing.write_text(new)
+    print(f"Installed the xenagos skill in {target}")
+    return 0
+
+
 COMMANDS: dict[str, Callable[[Sequence[str]], int]] = {
     "list": cmd_list,
     "stop": cmd_stop,
@@ -522,6 +556,7 @@ COMMANDS: dict[str, Callable[[Sequence[str]], int]] = {
     "show": cmd_show,
     "step": cmd_step,
     "visual": cmd_visual,
+    "skill": cmd_skill,
     "_serve": cmd_serve_saved,
 }
 

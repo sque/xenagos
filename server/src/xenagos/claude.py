@@ -21,6 +21,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -84,10 +85,27 @@ def executable() -> str:
 
 
 def child_env(extra: dict[str, str] | None = None) -> dict[str, str]:
-    """The environment for a program xenagos starts: its own, without the variables of a Claude Code session."""
+    """The environment for a program xenagos starts: its own, without the variables of a Claude Code session, and
+    with this installation's `xen` first on the PATH. A session started with `claude --bg` gets the caller's PATH
+    (other variables are not passed on), so the sessions xenagos starts can run the same `xen`."""
     env = {key: value for key, value in os.environ.items() if key not in SESSION_VARIABLES}
+    folder = xen_folder()
+    if folder is not None:
+        env["PATH"] = os.pathsep.join([str(folder), *[p for p in env.get("PATH", "").split(os.pathsep) if p]])
     env.update(extra or {})
     return env
+
+
+def xen_folder() -> Path | None:
+    """The folder of this installation's `xen` command, beside its Python."""
+    folder = Path(sys.executable).parent
+    return folder if (folder / "xen").is_file() else None
+
+
+def plugin_dir() -> Path:
+    """The Claude Code plugin shipped with xenagos: the skill that teaches a session the `xen` commands. Sessions
+    xenagos starts or continues load it with `--plugin-dir`; nothing is installed in the user's configuration."""
+    return Path(__file__).with_name("plugin")
 
 
 def opener_session() -> str | None:

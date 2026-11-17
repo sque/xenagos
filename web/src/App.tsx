@@ -78,7 +78,7 @@ export function App() {
           {load.state === 'ready' && load.plan === null && <NoWalkthrough />}
           {load.state === 'ready' && load.plan !== null && <Walkthrough plan={load.plan} pointing={pointing} />}
         </main>
-        <AgentPane status={agent} onEnded={refreshAgent} />
+        <AgentPane status={agent} onEnded={refreshAgent} onStatus={setAgent} />
       </div>
     </div>
   )

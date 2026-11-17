@@ -220,6 +220,20 @@ def create_app(
             raise HTTPException(409, f"this review already has session {agent.session_id}")
         return agent.status()
 
+    @app.post("/api/agent/continue")
+    async def continue_session() -> AgentStatus:
+        try:
+            return await agent.continue_here()
+        except AgentError as error:
+            raise HTTPException(error.status, str(error)) from error
+
+    @app.post("/api/agent/start")
+    async def start_session() -> AgentStatus:
+        try:
+            return await agent.start_new()
+        except AgentError as error:
+            raise HTTPException(error.status, str(error)) from error
+
     @app.post("/api/agent/ask")
     async def ask(question: Question) -> Delivery:
         try:
@@ -294,7 +308,7 @@ class _MemoryStore(ReviewStore):
     def load(self) -> None:
         return None
 
-    def set_session(self, session: str | None) -> None:
+    def set_session(self, session: str | None, name: str | None = None, cwd: str | None = None) -> None:
         self._session = session
 
 

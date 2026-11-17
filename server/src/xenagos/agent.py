@@ -16,7 +16,7 @@ from pathlib import Path
 
 from xenagos import claude, git
 from xenagos.api import AgentRequest, AgentStatus, CodeSelection, Delivery, ElementSelection, Position, Question
-from xenagos.claude import ClaudeError, Session
+from xenagos.claude import ClaudeError, Session, StillOpen
 from xenagos.review import Review
 from xenagos.store import ReviewStore
 from xenagos.terminal import Terminal
@@ -26,6 +26,8 @@ PASTE_END = b"\x1b[201~"
 SUBMIT_DELAY_SECONDS = 0.15
 SETTLE_SECONDS = 1.5
 """A pane that has just attached is still drawing; text typed before then can be lost."""
+CONTINUE_OR_START = "Continue it here, or start a new session."
+READY = "Say in one short sentence that you are ready."
 
 
 class AgentError(Exception):
@@ -90,19 +92,22 @@ class Agent:
             session = self.session()
         except ClaudeError as error:
             return AgentStatus(state="unavailable", session=self.session_id, reason=str(error))
+        saved = self.store.load()
         if session is None:
-            return AgentStatus(
-                state="ended", session=self.session_id, reason="Claude Code no longer lists this session."
-            )
+            name = saved.session_name if saved is not None else None
+            reason = f"Claude Code no longer lists this session. {CONTINUE_OR_START}"
+            return AgentStatus(state="ended", session=self.session_id, name=name, reason=reason)
+        self.store.set_session(session.session_id, session.name, session.cwd)
         common = {"session": session.session_id, "name": session.label, "activity": session.status}
         if session.kind != "background":
+            where = "Close it in its terminal, then continue it here" if session.running else "Continue it here"
             reason = (
-                "This session was started by hand in a terminal. Only background sessions can be shown here; "
-                "it can still write the walkthrough and point at code."
+                "This session was started by hand in a terminal, so it cannot be shown here; it can still write "
+                f"the walkthrough and point at code. {where}, or start a new session."
             )
             return AgentStatus(state="not-shown", reason=reason, **common)
         if not session.running:
-            return AgentStatus(state="ended", reason="The session has stopped.", **common)
+            return AgentStatus(state="ended", reason=f"The session has stopped. {CONTINUE_OR_START}", **common)
         return AgentStatus(state="attachable", **common)
 
     def attachable(self) -> Session:
@@ -140,12 +145,62 @@ class Agent:
             f"Use the `xen` commands with `--review {rid}` to write the walkthrough and to point at code in the viewer."
         )
 
+    def extra_arguments(self) -> list[str]:
+        """Arguments for every session xenagos starts or continues."""
+        return []
+
     def _start(self, message: str) -> Session:
         prompt = f"{self.introduction()}\n\n{message}"
-        session = claude.start(self.working_dir(), self.session_name(), self.settings.permission_mode, prompt)
+        session = claude.start(
+            self.working_dir(), self.session_name(), self.settings.permission_mode, prompt, self.extra_arguments()
+        )
         self.session_id = session.session_id
-        self.store.set_session(session.session_id)
+        self.store.set_session(session.session_id, session.name, session.cwd)
         return session
+
+    async def start_new(self) -> AgentStatus:
+        """Start a new session for the review, replacing the one it has (only on the user's request)."""
+        async with self._lock:
+            try:
+                await asyncio.to_thread(self._start, READY)
+            except ClaudeError as error:
+                raise AgentError(502, str(error)) from error
+        self._on_change()
+        return await asyncio.to_thread(self.status)
+
+    async def continue_here(self) -> AgentStatus:
+        """Continue the review's session in the background, so the pane can show it (only on the user's request).
+        It keeps its id, conversation and name. A session still open elsewhere is not continued: no copy of it is
+        left running, and the user is told to close it first (spec: agent-link)."""
+        async with self._lock:
+            await asyncio.to_thread(self._continue)
+        self._on_change()
+        return await asyncio.to_thread(self.status)
+
+    def _continue(self) -> None:
+        if self.session_id is None:
+            raise AgentError(409, "This review has no session to continue.")
+        try:
+            session = self.session()
+        except ClaudeError as error:
+            raise AgentError(502, str(error)) from error
+        if session is not None and session.can_attach:
+            return
+        saved = self.store.load()
+        name = (session.name if session else None) or (saved.session_name if saved else None) or self.session_name()
+        if session is not None and session.running:
+            raise AgentError(
+                409, f"Session {name} is still open in another terminal. Close it there, then choose continue again."
+            )
+        folder = (session.cwd if session else None) or (saved.session_cwd if saved else None)
+        cwd = Path(folder) if folder and Path(folder).is_dir() else self.working_dir()
+        prompt = f"{self.introduction()}\n\nThis session now continues in the review's agent pane. {READY}"
+        try:
+            claude.continue_in_background(self.session_id, cwd, name, prompt, self.extra_arguments())
+        except StillOpen as error:
+            raise AgentError(409, str(error)) from error
+        except ClaudeError as error:
+            raise AgentError(502, str(error)) from error
 
     # What is entered into the session
 

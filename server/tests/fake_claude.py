@@ -6,6 +6,9 @@ names of `claude agents --json`.
 
 - `agents --json --all` prints the sessions.
 - `--bg -n NAME [--permission-mode MODE] PROMPT` adds a running background session, or fails with `refuse`.
+- `--resume ID --bg -n NAME PROMPT` continues session ID as a running background session with the same id, or, when
+  ID still runs or `copy_on_resume` is set, starts a copy and says so, as Claude Code does.
+- `stop ID` and `rm ID` stop and remove a background session.
 - `attach ID` behaves like a full-screen program: raw terminal, prints `attached ID COLSxROWS`, then `got <bytes>` for
   every input it reads and `size COLSxROWS` when the terminal is resized.
 """
@@ -45,6 +48,16 @@ def main(argv: list[str]) -> int:
         return 0
     if argv[:1] == ["--bg"]:
         return start(argv[1:])
+    if argv[:1] == ["--resume"]:
+        return resume(argv[1], argv[2:])
+    if argv[:1] == ["stop"]:
+        update(lambda s: [row.pop("pid", None) for row in s["sessions"] if row.get("id") == argv[1]])
+        print(f"stopped {argv[1]}")
+        return 0
+    if argv[:1] == ["rm"]:
+        update(lambda s: s.update(sessions=[row for row in s["sessions"] if row.get("id") != argv[1]]))
+        print(f"removed {argv[1]}")
+        return 0
     if argv[:1] == ["attach"]:
         return attach(argv[1])
     print(f"fake claude: unknown command {argv}", file=sys.stderr)
@@ -72,6 +85,25 @@ def start(argv: list[str]) -> int:
     update(lambda s: s["sessions"].append(session))
     print(f"backgrounded · {short} · {name}")
     print(f"  claude attach {short}    open in this terminal")
+    return 0
+
+
+def resume(session_id: str, argv: list[str]) -> int:
+    state = json.loads(STATE.read_text())
+    name = argv[argv.index("-n") + 1]
+    current = next((row for row in state["sessions"] if row["sessionId"] == session_id), None)
+    if (current is not None and "pid" in current) or state.get("copy_on_resume"):
+        short = secrets.token_hex(4)
+        print(
+            f"note: session {session_id[:8]} is open in another Claude Code process, so this started a copy as {short}."
+        )
+        full = f"{short}{str(uuid.uuid4())[8:]}"
+    else:
+        short, full = session_id[:8], session_id
+    row = {"pid": os.getpid(), "id": short, "cwd": str(Path.cwd()), "kind": "background", "sessionId": full}
+    row |= {"name": name, "status": "busy", "state": "working"}
+    update(lambda s: s.update(sessions=[r for r in s["sessions"] if r["sessionId"] != full] + [row]))
+    print(f"backgrounded · {short} · {name}")
     return 0
 
 

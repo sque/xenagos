@@ -96,3 +96,19 @@ test('fetches the plan and the agent again when the server says they changed', a
     expect(count('/api/agent')).toBe(agents + 1)
   })
 })
+
+test('continues a session that cannot be shown, on request', async () => {
+  const reason = 'This session was started by hand in a terminal. Continue it here, or start a new session.'
+  const fetch = serve({
+    '/api/review': json(review),
+    '/api/agent': json({ state: 'not-shown', name: 'by-hand', reason }),
+    'POST /api/agent/continue': new Response(JSON.stringify({ detail: 'Session by-hand is still open in another terminal.' }), {
+      status: 409,
+    }),
+  })
+  render(<App />)
+  fireEvent.click(await screen.findByText('Continue it here'))
+  expect((await screen.findByRole('alert')).textContent).toBe('Session by-hand is still open in another terminal.')
+  expect(fetch.mock.calls.filter(([url]) => url === '/api/agent/continue')).toHaveLength(1)
+  expect(screen.getByText('Start a new session')).toBeDefined()
+})

@@ -383,3 +383,63 @@ def test_narration_submit_changes_narration_only(target: ReviewTarget) -> None:
     assert rejected.json()["problems"] == [
         "section 1, step 1: only narration may change; the step's target or form differs"
     ]
+
+
+# A session that cannot be shown (task 7.3)
+
+
+def test_hand_started_session_still_open_is_not_continued(target: ReviewTarget, fake_claude: FakeClaude) -> None:
+    session = fake_claude.add("cccc3333", kind="interactive", name="by-hand")
+    api = client(target)
+    api.put("/api/agent/session", json={"session": session})
+    status = api.get("/api/agent").json()
+    assert status["state"] == "not-shown"
+    assert "Close it in its terminal, then continue it here" in status["reason"]
+    answer = api.post("/api/agent/continue")
+    assert answer.status_code == 409
+    assert "still open in another terminal" in answer.json()["detail"]
+    assert fake_claude.calls("--resume") == []
+
+
+def test_closed_hand_started_session_is_continued_with_its_id_and_name(
+    target: ReviewTarget, fake_claude: FakeClaude
+) -> None:
+    session = fake_claude.add("cccc3333", kind="interactive", name="by-hand")
+    api = client(target)
+    api.put("/api/agent/session", json={"session": session})
+    api.get("/api/agent")  # Claude Code lists it: its name and folder are remembered
+    fake_claude.write(sessions=[])  # closed in its terminal; Claude Code no longer lists it
+    assert api.get("/api/agent").json()["state"] == "ended"
+    status = api.post("/api/agent/continue").json()
+    assert (status["state"], status["session"], status["name"]) == ("attachable", session, "by-hand")
+    [call] = fake_claude.calls("--resume")
+    assert call["argv"][:5] == ["--resume", session, "--bg", "-n", "by-hand"]
+    assert "continues in the review's agent pane" in call["argv"][-1]
+    assert call["cwd"] == str(Path.home().resolve())
+
+
+def test_copy_of_a_session_open_elsewhere_is_removed(target: ReviewTarget, fake_claude: FakeClaude) -> None:
+    session = fake_claude.add("cccc3333", kind="background", running=False, name="stopped")
+    fake_claude.write(copy_on_resume=True)
+    api = client(target)
+    api.put("/api/agent/session", json={"session": session})
+    answer = api.post("/api/agent/continue")
+    assert answer.status_code == 409
+    assert "Close it there, then choose continue again" in answer.json()["detail"]
+    [stop] = fake_claude.calls("stop")
+    [remove] = fake_claude.calls("rm")
+    assert stop["argv"][1] == remove["argv"][1] != "cccc3333"
+    assert [row["sessionId"] for row in fake_claude.state()["sessions"]] == [session]
+    assert ReviewStore(target.review_id).load().session == session  # type: ignore[union-attr]
+
+
+def test_new_session_replaces_the_reviews_on_request(target: ReviewTarget, fake_claude: FakeClaude) -> None:
+    old = fake_claude.add("cccc3333", kind="interactive")
+    api = client(target)
+    api.put("/api/agent/session", json={"session": old})
+    status = api.post("/api/agent/start").json()
+    assert status["state"] == "attachable"
+    assert status["session"] != old
+    assert ReviewStore(target.review_id).load().session == status["session"]  # type: ignore[union-attr]
+    [start] = fake_claude.calls("--bg")
+    assert start["argv"][-1].endswith("Say in one short sentence that you are ready.")

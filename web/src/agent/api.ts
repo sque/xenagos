@@ -12,22 +12,32 @@ export async function fetchAgent(): Promise<AgentStatus> {
   return (await response.json()) as AgentStatus
 }
 
-async function post(url: string, body: unknown): Promise<Delivery> {
+async function send<T>(url: string, body?: unknown): Promise<T> {
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body ?? {}),
   })
-  if (response.ok) return (await response.json()) as Delivery
+  if (response.ok) return (await response.json()) as T
   const detail = ((await response.json().catch(() => ({}))) as { detail?: unknown }).detail
   throw new AgentRefused(typeof detail === 'string' ? detail : `the review server answered ${String(response.status)}`)
 }
 
 /** Enter the reviewer's question into the session, starting one when the review has none. */
 export function ask(question: Question): Promise<Delivery> {
-  return post('/api/agent/ask', question)
+  return send('/api/agent/ask', question)
 }
 
 export function request(request: AgentRequest): Promise<Delivery> {
-  return post('/api/agent/request', request)
+  return send('/api/agent/request', request)
+}
+
+/** Continue the review's session in the background so the pane can show it, keeping its conversation. */
+export function continueSession(): Promise<AgentStatus> {
+  return send('/api/agent/continue')
+}
+
+/** Start a new session for the review, replacing the one it has. */
+export function startSession(): Promise<AgentStatus> {
+  return send('/api/agent/start')
 }

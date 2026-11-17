@@ -90,3 +90,7 @@ button { font: inherit; color: inherit; }
 .askactions button { padding: 0.25rem 0.8rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); cursor: pointer; }
 .askactions button[type="submit"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .askactions button:disabled { opacity: 0.5; cursor: default; }
+.sessionchoice { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0 0.75rem 0.75rem; }
+.sessionchoice button { padding: 0.3rem 0.8rem; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: inherit; cursor: pointer; }
+.sessionchoice button:disabled { opacity: 0.6; cursor: default; }
+.agenterror { flex-basis: 100%; margin: 0; color: #f85149; }

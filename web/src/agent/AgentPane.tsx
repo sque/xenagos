@@ -2,10 +2,18 @@
 // Code's own interface when the session can be shown, and otherwise says why the pane is empty.
 
 import { useEffect, useRef, useState } from 'react'
-import type { AgentStatus } from './api'
+import { type AgentStatus, continueSession, startSession } from './api'
 import { AgentTerminal, type TerminalEnd } from './terminal'
 
-export function AgentPane({ status, onEnded }: { status: AgentStatus | null; onEnded: () => void }) {
+export function AgentPane({
+  status,
+  onEnded,
+  onStatus,
+}: {
+  status: AgentStatus | null
+  onEnded: () => void
+  onStatus: (status: AgentStatus) => void
+}) {
   const attachable = status?.state === 'attachable'
   return (
     <aside className="agent" aria-label="Agent">
@@ -25,8 +33,57 @@ export function AgentPane({ status, onEnded }: { status: AgentStatus | null; onE
           {status.reason}
         </p>
       )}
+      {(status?.state === 'not-shown' || status?.state === 'ended') && <SessionChoice onStatus={onStatus} />}
       {attachable && <Session key={status.session} onEnded={onEnded} />}
     </aside>
+  )
+}
+
+/** For a session the pane cannot show: continue that same session here, or start a new one. Either happens only
+ * when the reviewer chooses it (spec: agent-link). */
+function SessionChoice({ onStatus }: { onStatus: (status: AgentStatus) => void }) {
+  const [busy, setBusy] = useState<'continue' | 'start' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const run = (which: 'continue' | 'start') => {
+    setBusy(which)
+    setError(null)
+    ;(which === 'continue' ? continueSession() : startSession()).then(
+      (status) => {
+        setBusy(null)
+        onStatus(status)
+      },
+      (failure: unknown) => {
+        setBusy(null)
+        setError(failure instanceof Error ? failure.message : String(failure))
+      },
+    )
+  }
+  return (
+    <div className="sessionchoice">
+      <button
+        type="button"
+        disabled={busy !== null}
+        onClick={() => {
+          run('continue')
+        }}
+      >
+        {busy === 'continue' ? 'Continuing…' : 'Continue it here'}
+      </button>
+      <button
+        type="button"
+        disabled={busy !== null}
+        onClick={() => {
+          run('start')
+        }}
+      >
+        {busy === 'start' ? 'Starting…' : 'Start a new session'}
+      </button>
+      {error !== null && (
+        <p className="agenterror" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
   )
 }
 

@@ -10,6 +10,9 @@ shows one by running `claude attach` on a pseudo-terminal. Measured on Claude Co
   how to trust it. Trusting a parent folder is not enough.
 - `claude attach` on a stopped background session starts it again, so xenagos attaches only to running sessions: it
   never resumes a session by itself.
+- `claude --resume <id> --bg` continues a session in the background under the same id once its process has ended
+  (spike 2.5). While the session is still open elsewhere it starts a copy instead and says
+  `note: session <id> is open in another Claude Code process, so this started a copy as <copy id>`.
 
 The command is `claude` on the PATH, or the program named by `XENAGOS_CLAUDE` (tests use a stand-in).
 """
@@ -18,6 +21,7 @@ import json
 import os
 import re
 import subprocess
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -41,10 +45,15 @@ SESSION_VARIABLES = frozenset(
 )
 TIMEOUT_SECONDS = 30.0
 _STARTED = re.compile(r"^backgrounded\s+\S+\s+([0-9a-f]{6,})\b", re.MULTILINE)
+_COPY = re.compile(r"is open in another Claude Code process, so this started a copy as ([0-9a-f]{6,})")
 
 
 class ClaudeError(Exception):
     """A `claude` command failed; the message is meant for the user."""
+
+
+class StillOpen(ClaudeError):
+    """The session to continue is still open in another Claude Code process."""
 
 
 @dataclass(frozen=True)
@@ -156,12 +165,45 @@ def resolve(reference: str) -> Session:
     raise ClaudeError(f"no Claude Code session {reference!r}; see `claude agents`")
 
 
-def start(cwd: Path, name: str, permission_mode: str | None, prompt: str) -> Session:
+def start(cwd: Path, name: str, permission_mode: str | None, prompt: str, extra: Sequence[str] = ()) -> Session:
     """Start a background session in `cwd` whose first message is `prompt`."""
     mode = ["--permission-mode", permission_mode] if permission_mode else []
-    result = _run("--bg", "-n", name, *mode, prompt, cwd=cwd)
+    result = _run("--bg", "-n", name, *mode, *extra, prompt, cwd=cwd)
     if result.returncode != 0:
         raise ClaudeError(f"Claude Code did not start a session: {_failure(result)}")
+    return _backgrounded(result)
+
+
+def continue_in_background(session_id: str, cwd: Path, name: str, prompt: str, extra: Sequence[str] = ()) -> Session:
+    """Continue a session whose process has ended as a background session, keeping its id, conversation and name.
+    If it is still open elsewhere, the copy Claude Code starts instead is stopped and removed, and StillOpen raised."""
+    result = _run("--resume", session_id, "--bg", "-n", name, *extra, prompt, cwd=cwd)
+    copy = _COPY.search(result.stdout + result.stderr)
+    if copy is not None:
+        remove(copy.group(1))
+        raise StillOpen(
+            f"Session {name} is still open in another terminal, so it cannot be continued here. "
+            "Close it there, then choose continue again."
+        )
+    if result.returncode != 0:
+        raise ClaudeError(f"Claude Code did not continue the session: {_failure(result)}")
+    session = _backgrounded(result)
+    if session.session_id != session_id:
+        if session.short_id is not None:
+            remove(session.short_id)
+        raise ClaudeError(f"Claude Code continued a different session ({session.session_id}); it was removed")
+    return session
+
+
+def remove(short_id: str) -> None:
+    """Stop a background session and remove it from Claude Code's list. Its conversation is kept."""
+    _run("stop", short_id)
+    result = _run("rm", short_id)
+    if result.returncode != 0:
+        raise ClaudeError(f"Claude Code did not remove session {short_id}: {_failure(result)}")
+
+
+def _backgrounded(result: subprocess.CompletedProcess[str]) -> Session:
     found = _STARTED.search(result.stdout)
     if found is None:
         raise ClaudeError(f"Claude Code started a session but its id could not be read from: {result.stdout.strip()}")

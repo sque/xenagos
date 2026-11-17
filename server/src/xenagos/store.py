@@ -27,6 +27,10 @@ class SavedReview(BaseModel):
     branch: str | None
     session: str | None = None
     """Full id of the review's Claude Code session, if it has one."""
+    session_name: str | None = None
+    session_cwd: str | None = None
+    """Where the session runs. A session is continued from its own folder, and its name is passed again, after
+    Claude Code has stopped listing it."""
     created: float
 
     @property
@@ -70,11 +74,13 @@ class ReviewStore:
             self._write("review.json", saved.model_dump_json(indent=2))
         return saved
 
-    def set_session(self, session: str | None) -> None:
+    def set_session(self, session: str | None, name: str | None = None, cwd: str | None = None) -> None:
         saved = self.load()
         if saved is None:
             raise FileNotFoundError(f"no saved review {self.review_id}")
-        self._write("review.json", saved.model_copy(update={"session": session}).model_dump_json(indent=2))
+        update = {"session": session, "session_name": name, "session_cwd": cwd}
+        if update != {"session": saved.session, "session_name": saved.session_name, "session_cwd": saved.session_cwd}:
+            self._write("review.json", saved.model_copy(update=update).model_dump_json(indent=2))
 
     def load_plan(self) -> Plan | None:
         return _read(self.dir / "plan.json", Plan)

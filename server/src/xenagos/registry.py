@@ -35,7 +35,6 @@ class Entry(BaseModel):
     secret: str
     pid: int
     started: float
-    session: str | None = None
 
     @property
     def url(self) -> str:

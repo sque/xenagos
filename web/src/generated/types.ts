@@ -1,6 +1,60 @@
 // Generated from the server models (server/src/xenagos/plan.py, api.py) by `make types`. Do not edit.
 
 /**
+ * A fixed request the reviewer sends with a control in the viewer.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "AgentRequest".
+ */
+export interface AgentRequest {
+  kind: "walkthrough" | "narration" | "visual";
+  /**
+   * The visual to repair, for `visual`.
+   */
+  visual?: string | null;
+}
+/**
+ * The review's agent session as the viewer shows it (spec: agent-link).
+ *
+ * `state` is `none` (no session yet), `attachable` (a running background session the pane can show), `not-shown`
+ * (a session of a kind the pane cannot show), `ended` (stopped or gone), or `unavailable` (Claude Code could not be
+ * asked).
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "AgentStatus".
+ */
+export interface AgentStatus {
+  /**
+   * What Claude Code reports while it runs: idle, busy, ...
+   */
+  activity?: string | null;
+  name?: string | null;
+  /**
+   * Why the pane is empty, for the reviewer.
+   */
+  reason?: string | null;
+  session?: string | null;
+  state: "none" | "attachable" | "not-shown" | "ended" | "unavailable";
+}
+/**
+ * Lines the reviewer selected. In the unified view a selection can start on a deleted line and end on an added
+ * one, so each end names its side.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "CodeSelection".
+ */
+export interface CodeSelection {
+  endLine: number;
+  endSide: "base" | "head";
+  kind: "code";
+  /**
+   * The file as the viewer names it: its head path, or base path if deleted.
+   */
+  path: string;
+  startLine: number;
+  startSide: "base" | "head";
+}
+/**
  * Lines of a file at the base or head revision, optionally narrowed to a span of characters.
  *
  * Lines and columns count from 1 and both ends are included. With a span, `startCol` is on the first line and
@@ -20,6 +74,28 @@ export interface CodeTarget {
   side?: "base" | "head";
   startCol?: number | null;
   startLine: number;
+}
+/**
+ * What happened to a question or request.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "Delivery".
+ */
+export interface Delivery {
+  session: string;
+  /**
+   * True when a session was started for it, with it as the first message.
+   */
+  started: boolean;
+}
+/**
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "ElementSelection".
+ */
+export interface ElementSelection {
+  element: string;
+  kind: "element";
+  visual: string;
 }
 /**
  * A file at both pinned revisions, for the whole-file view. Text is absent when the file does not exist at that
@@ -141,6 +217,25 @@ export interface PlanRejection {
   problems: string[];
 }
 /**
+ * Where the reviewer was in the walkthrough, counted from 1.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "Position".
+ */
+export interface Position {
+  section: number;
+  step: number;
+}
+/**
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "Question".
+ */
+export interface Question {
+  position?: Position | null;
+  question: string;
+  selection: CodeSelection | ElementSelection;
+}
+/**
  * This interface was referenced by `Root`'s JSON-Schema
  * via the `definition` "ReviewInfo".
  */
@@ -151,4 +246,14 @@ export interface ReviewInfo {
   id: string;
   label: string;
   repo: string;
+}
+/**
+ * Something the agent points at in the viewer.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "Show".
+ */
+export interface Show {
+  form?: "lines" | "box" | "circle";
+  target: CodeTarget | VisualTarget;
 }

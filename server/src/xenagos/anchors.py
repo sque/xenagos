@@ -42,12 +42,12 @@ def check(
                 claimed_by[hunk] = number
         for step_number, step in enumerate(section.steps, start=1):
             if isinstance(step.target, CodeTarget):
-                problems += _check_code(f"{where}, step {step_number}", step.target, target, files)
+                problems += check_code(f"{where}, step {step_number}", step.target, target, files)
         for visual in section.visuals:
             for element in visual.elements:
                 if element.link is not None:
                     item = f"{where}, visual {visual.id}, element {element.id}"
-                    problems += _check_code(item, element.link, target, files)
+                    problems += check_code(item, element.link, target, files)
     return problems
 
 
@@ -55,7 +55,7 @@ def _section(number: int, section: Section) -> str:
     return f'section {number} ("{section.title}")'
 
 
-def _check_code(where: str, code: CodeTarget, target: ReviewTarget, files: RevisionFiles) -> list[Problem]:
+def check_code(where: str, code: CodeTarget, target: ReviewTarget, files: RevisionFiles) -> list[Problem]:
     revision = target.base if code.side == "base" else target.head
     at = f"at the {code.side} revision"
     lines = files.lines(revision, code.path)

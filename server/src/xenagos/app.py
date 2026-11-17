@@ -1,22 +1,45 @@
-"""HTTP application: serves the built viewer and the review API."""
+"""HTTP application: serves the built viewer, the review API, the agent pane and the `xen` agent commands."""
 
+import asyncio
+import contextlib
+import json
+import time
+from collections.abc import AsyncIterator, Callable
+from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 from typing import Any
 
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 from starlette.types import Scope
 
-from xenagos import __version__
+from xenagos import __version__, claude
 from xenagos.access import Access, AccessControl
-from xenagos.api import FileView, PlanRejection, ReviewInfo
+from xenagos.agent import Agent, AgentError, AgentSettings
+from xenagos.api import (
+    AgentRequest,
+    AgentStatus,
+    Delivery,
+    FileView,
+    PlanRejection,
+    Question,
+    ReviewInfo,
+    SessionChoice,
+    Show,
+    ShowResult,
+    StepAddition,
+    VisualAddition,
+)
+from xenagos.events import Events
 from xenagos.files import BINARY
 from xenagos.plan import Plan
-from xenagos.review import PlanRejected, Review
+from xenagos.review import PlanRejected, Review, without_narration
+from xenagos.store import ReviewStore
 from xenagos.target import ReviewTarget
+from xenagos.terminal import Terminal
 
 VIEWER_MISSING = "The viewer is not built. Run `make web` in the xenagos repository, or install a built package."
 
@@ -38,12 +61,70 @@ def bundled_viewer_dir() -> Path | None:
     return path if (path / "index.html").is_file() else None
 
 
-def create_app(target: ReviewTarget, access: Access, viewer_dir: Path | None) -> FastAPI:
-    """Build the application for one review. `viewer_dir` holds the built viewer; None serves an explanation."""
-    app = FastAPI(title="xenagos", version=__version__, docs_url=None, redoc_url=None, openapi_url=None)
+@dataclass(frozen=True)
+class IdlePolicy:
+    """When a review's server ends itself (spec: review-session, "Idle instances end themselves")."""
+
+    idle_seconds: float = 30 * 60
+    """After the last viewer closed."""
+    unopened_seconds: float = 24 * 3600
+    """When no viewer was ever opened."""
+
+    @property
+    def check_every(self) -> float:
+        return max(0.05, min(5.0, self.idle_seconds / 4, self.unopened_seconds / 4))
+
+    def expired(self, events: Events, now: float) -> bool:
+        limit = self.idle_seconds if events.ever_opened else self.unopened_seconds
+        return events.viewers == 0 and events.idle_for(now) >= limit
+
+
+def rejection(error: PlanRejected) -> JSONResponse:
+    return JSONResponse(PlanRejection(problems=error.problems).model_dump(), status_code=422)
+
+
+def create_app(
+    target: ReviewTarget,
+    access: Access,
+    viewer_dir: Path | None,
+    *,
+    store: ReviewStore | None = None,
+    settings: AgentSettings | None = None,
+    idle: IdlePolicy | None = None,
+    on_idle: Callable[[], None] | None = None,
+) -> FastAPI:
+    """Build the application for one review. `viewer_dir` holds the built viewer; None serves an explanation.
+    `store` keeps the review's state across servers; without it the state lives in memory. With `idle`, `on_idle` is
+    called once the server has had no viewer for the policy's period."""
+    events = Events()
+
+    @contextlib.asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        watcher = asyncio.create_task(_watch_idle(events, idle, on_idle)) if idle and on_idle else None
+        try:
+            yield
+        finally:
+            if watcher is not None:
+                watcher.cancel()
+            for terminal in list(agent.terminals):
+                await terminal.close()
+
+    app = FastAPI(
+        title="xenagos", version=__version__, docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan
+    )
     app.add_middleware(AccessControl, access=access)
-    state = Review(target)
+    state = Review(target, store=store, on_plan=lambda plan: events.publish({"type": "plan"}))
+    if store is not None:
+        store.save_target(target)
+    agent = Agent(
+        state,
+        store if store is not None else _MemoryStore(target),
+        settings or AgentSettings(),
+        on_change=lambda: events.publish({"type": "agent"}),
+    )
     app.state.review = state
+    app.state.agent = agent
+    app.state.events = events
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
@@ -84,12 +165,109 @@ def create_app(target: ReviewTarget, access: Access, viewer_dir: Path | None) ->
             raise HTTPException(404, "this review has no walkthrough yet")
         return state.plan
 
+    @app.get("/api/plan/without-narration")
+    def get_plan_without_narration() -> dict[str, Any]:
+        if state.plan is None:
+            raise HTTPException(404, "this review has no walkthrough yet")
+        return without_narration(state.plan)
+
     @app.put("/api/plan", response_model=Plan, responses={422: {"model": PlanRejection}})
     def put_plan(document: Any = Body()) -> Any:  # noqa: B008 - FastAPI's declaration style
         try:
             return state.submit_plan(document)
         except PlanRejected as rejected:
-            return JSONResponse(PlanRejection(problems=rejected.problems).model_dump(), status_code=422)
+            return rejection(rejected)
+
+    @app.put("/api/plan/narration", response_model=Plan, responses={422: {"model": PlanRejection}})
+    def put_narration(document: Any = Body()) -> Any:  # noqa: B008
+        try:
+            return state.submit_narration(document)
+        except PlanRejected as rejected:
+            return rejection(rejected)
+
+    @app.post("/api/plan/steps", response_model=Plan, responses={422: {"model": PlanRejection}})
+    def add_step(addition: StepAddition) -> Any:
+        try:
+            return state.add_step(addition)
+        except PlanRejected as rejected:
+            return rejection(rejected)
+
+    @app.post("/api/plan/visuals", response_model=Plan, responses={422: {"model": PlanRejection}})
+    def add_visual(addition: VisualAddition) -> Any:
+        try:
+            return state.add_visual(addition)
+        except PlanRejected as rejected:
+            return rejection(rejected)
+
+    @app.post("/api/show", response_model=ShowResult, responses={422: {"model": PlanRejection}})
+    def show(request: Show) -> Any:
+        try:
+            state.check_show(request)
+        except PlanRejected as rejected:
+            return rejection(rejected)
+        events.publish({"type": "show", **request.model_dump(mode="json", by_alias=True, exclude_none=True)})
+        return ShowResult(viewers=events.viewers)
+
+    # The agent session
+
+    @app.get("/api/agent")
+    def agent_status() -> AgentStatus:
+        return agent.status()
+
+    @app.put("/api/agent/session")
+    def choose_session(choice: SessionChoice) -> AgentStatus:
+        if not agent.choose(choice.session, replace=choice.replace):
+            raise HTTPException(409, f"this review already has session {agent.session_id}")
+        return agent.status()
+
+    @app.post("/api/agent/ask")
+    async def ask(question: Question) -> Delivery:
+        try:
+            return await agent.deliver(agent.question(question))
+        except AgentError as error:
+            raise HTTPException(error.status, str(error)) from error
+
+    @app.post("/api/agent/request")
+    async def request(request: AgentRequest) -> Delivery:
+        try:
+            return await agent.deliver(agent.request(request))
+        except AgentError as error:
+            raise HTTPException(error.status, str(error)) from error
+
+    @app.websocket("/api/events")
+    async def viewer_events(socket: WebSocket) -> None:
+        await socket.accept()
+        queue = events.subscribe()
+        receiver = asyncio.create_task(_until_closed(socket))
+        try:
+            while True:
+                getter = asyncio.create_task(queue.get())
+                done, _ = await asyncio.wait({getter, receiver}, return_when=asyncio.FIRST_COMPLETED)
+                if receiver in done:
+                    getter.cancel()
+                    break
+                await socket.send_json(getter.result())
+        except WebSocketDisconnect:
+            pass
+        finally:
+            receiver.cancel()
+            events.unsubscribe(queue)
+
+    @app.websocket("/api/agent/terminal")
+    async def agent_terminal(socket: WebSocket, cols: int = 100, rows: int = 30) -> None:
+        await socket.accept()
+        try:
+            session = await asyncio.to_thread(agent.attachable)
+            cwd = Path(session.cwd) if session.cwd and Path(session.cwd).is_dir() else target.repo
+            terminal = await Terminal.spawn(claude.attach_command(session), cwd, claude.child_env(), cols, rows)
+        except (AgentError, claude.ClaudeError) as error:
+            await socket.send_json({"type": "unavailable", "reason": str(error)})
+            await socket.close()
+            return
+        agent.terminals.append(terminal)
+        await _bridge(socket, terminal)
+        agent.terminals.remove(terminal)
+        await terminal.close()
 
     # Keep this last: a mount at "/" answers for every route added after it, WebSockets included.
     if viewer_dir is None:
@@ -101,3 +279,66 @@ def create_app(target: ReviewTarget, access: Access, viewer_dir: Path | None) ->
     else:
         app.mount("/", ViewerFiles(directory=viewer_dir, html=True), name="viewer")
     return app
+
+
+class _MemoryStore(ReviewStore):
+    """Keeps the agent's session in memory, for an application built without saved state."""
+
+    def __init__(self, target: ReviewTarget) -> None:
+        super().__init__(target.review_id)
+        self._session: str | None = None
+
+    def load(self) -> None:
+        return None
+
+    def set_session(self, session: str | None) -> None:
+        self._session = session
+
+
+async def _watch_idle(events: Events, idle: IdlePolicy, on_idle: Callable[[], None]) -> None:
+    while not idle.expired(events, time.monotonic()):
+        await asyncio.sleep(idle.check_every)
+    on_idle()
+
+
+async def _until_closed(socket: WebSocket) -> None:
+    with contextlib.suppress(WebSocketDisconnect):
+        while True:
+            await socket.receive_text()
+
+
+async def _bridge(socket: WebSocket, terminal: Terminal) -> None:
+    """Terminal output to the socket as binary messages; keystrokes and size changes back as JSON text messages."""
+
+    async def output() -> None:
+        while data := await terminal.read():
+            await socket.send_bytes(data)
+        await socket.send_json({"type": "exit"})
+
+    async def keys() -> None:
+        while True:
+            message = await socket.receive_text()
+            try:
+                command = json.loads(message)
+            except ValueError:
+                continue
+            if not isinstance(command, dict):
+                continue
+            if command.get("type") == "input" and isinstance(command.get("data"), str):
+                terminal.write(command["data"].encode())
+            elif command.get("type") == "resize":
+                cols, rows = command.get("cols"), command.get("rows")
+                if isinstance(cols, int) and isinstance(rows, int):
+                    terminal.resize(cols, rows)
+
+    tasks = {asyncio.create_task(output()), asyncio.create_task(keys())}
+    try:
+        await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    finally:
+        for task in tasks:
+            task.cancel()
+        for task in tasks:
+            with contextlib.suppress(asyncio.CancelledError, WebSocketDisconnect, RuntimeError):
+                await task
+        with contextlib.suppress(RuntimeError):
+            await socket.close()

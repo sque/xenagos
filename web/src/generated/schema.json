@@ -1,5 +1,150 @@
 {
   "$defs": {
+    "AgentRequest": {
+      "additionalProperties": false,
+      "description": "A fixed request the reviewer sends with a control in the viewer.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "walkthrough",
+            "narration",
+            "visual"
+          ],
+          "type": "string"
+        },
+        "visual": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The visual to repair, for `visual`."
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "AgentRequest",
+      "type": "object"
+    },
+    "AgentStatus": {
+      "additionalProperties": false,
+      "description": "The review's agent session as the viewer shows it (spec: agent-link).\n\n`state` is `none` (no session yet), `attachable` (a running background session the pane can show), `not-shown`\n(a session of a kind the pane cannot show), `ended` (stopped or gone), or `unavailable` (Claude Code could not be\nasked).",
+      "properties": {
+        "activity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What Claude Code reports while it runs: idle, busy, ..."
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why the pane is empty, for the reviewer."
+        },
+        "session": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "state": {
+          "enum": [
+            "none",
+            "attachable",
+            "not-shown",
+            "ended",
+            "unavailable"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "title": "AgentStatus",
+      "type": "object"
+    },
+    "CodeSelection": {
+      "additionalProperties": false,
+      "description": "Lines the reviewer selected. In the unified view a selection can start on a deleted line and end on an added\none, so each end names its side.",
+      "properties": {
+        "endLine": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        "endSide": {
+          "enum": [
+            "base",
+            "head"
+          ],
+          "type": "string"
+        },
+        "kind": {
+          "const": "code",
+          "type": "string"
+        },
+        "path": {
+          "description": "The file as the viewer names it: its head path, or base path if deleted.",
+          "type": "string"
+        },
+        "startLine": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        "startSide": {
+          "enum": [
+            "base",
+            "head"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "startSide",
+        "startLine",
+        "endSide",
+        "endLine"
+      ],
+      "title": "CodeSelection",
+      "type": "object"
+    },
     "CodeTarget": {
       "additionalProperties": false,
       "description": "Lines of a file at the base or head revision, optionally narrowed to a span of characters.\n\nLines and columns count from 1 and both ends are included. With a span, `startCol` is on the first line and\n`endCol` on the last.",
@@ -67,6 +212,49 @@
         "endLine"
       ],
       "title": "CodeTarget",
+      "type": "object"
+    },
+    "Delivery": {
+      "additionalProperties": false,
+      "description": "What happened to a question or request.",
+      "properties": {
+        "session": {
+          "type": "string"
+        },
+        "started": {
+          "description": "True when a session was started for it, with it as the first message.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "started",
+        "session"
+      ],
+      "title": "Delivery",
+      "type": "object"
+    },
+    "ElementSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "element": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+          "type": "string"
+        },
+        "kind": {
+          "const": "element",
+          "type": "string"
+        },
+        "visual": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "visual",
+        "element"
+      ],
+      "title": "ElementSelection",
       "type": "object"
     },
     "FileView": {
@@ -207,6 +395,69 @@
       "title": "PlanRejection",
       "type": "object"
     },
+    "Position": {
+      "additionalProperties": false,
+      "description": "Where the reviewer was in the walkthrough, counted from 1.",
+      "properties": {
+        "section": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        "step": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "section",
+        "step"
+      ],
+      "title": "Position",
+      "type": "object"
+    },
+    "Question": {
+      "additionalProperties": false,
+      "properties": {
+        "position": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Position"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "question": {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "selection": {
+          "discriminator": {
+            "mapping": {
+              "code": "#/$defs/CodeSelection",
+              "element": "#/$defs/ElementSelection"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CodeSelection"
+            },
+            {
+              "$ref": "#/$defs/ElementSelection"
+            }
+          ]
+        }
+      },
+      "required": [
+        "question",
+        "selection"
+      ],
+      "title": "Question",
+      "type": "object"
+    },
     "ReviewInfo": {
       "additionalProperties": false,
       "properties": {
@@ -298,6 +549,36 @@
         "steps"
       ],
       "title": "Section",
+      "type": "object"
+    },
+    "Show": {
+      "additionalProperties": false,
+      "description": "Something the agent points at in the viewer.",
+      "properties": {
+        "form": {
+          "default": "lines",
+          "enum": [
+            "lines",
+            "box",
+            "circle"
+          ],
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CodeTarget"
+            },
+            {
+              "$ref": "#/$defs/VisualTarget"
+            }
+          ]
+        }
+      },
+      "required": [
+        "target"
+      ],
+      "title": "Show",
       "type": "object"
     },
     "Step": {

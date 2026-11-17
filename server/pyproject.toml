@@ -1,0 +1,51 @@
+[project]
+name = "xenagos"
+version = "0.1.0"
+description = "Local viewer that walks a reviewer through a code change, narrated by its Claude Code session"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.163.1",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+xen = "xenagos.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/xenagos"]
+# The built viewer is git-ignored, so it is listed as an artifact to be included anyway.
+artifacts = ["src/xenagos/static/**"]
+
+[tool.hatch.build.targets.sdist]
+artifacts = ["src/xenagos/static/**"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "PTH", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error"]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.16.2",
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]

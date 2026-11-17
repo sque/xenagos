@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+server/dist/
+
+# Node
+node_modules/
+
+# Built viewer, bundled into the Python package at build time
+server/src/xenagos/static/

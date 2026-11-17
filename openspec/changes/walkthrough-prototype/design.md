@@ -39,6 +39,11 @@ viewer's TypeScript types from it; a check fails the build when the generated ty
 validation run only in the server. The released package bundles the built viewer, so users need Python only; Node is
 a development-time dependency.
 
+Stack (chosen by the author, 2026-11-17): the server uses FastAPI on uvicorn, so the Pydantic plan models double as
+request types and WebSockets come built in; the viewer uses React with Vite, since `@pierre/diffs` ships React
+bindings. The diff view stays behind the adapter module (decision 5) so the overlay keeps direct control of the
+library's virtualised component.
+
 Alternatives: TypeScript end to end (one toolchain and direct type sharing, but a backend the maintainer reads less
 easily); Rust server (single binary, but the server's work is calling git, serving files and
 relaying messages, so there is no performance to win). The server stays behind an HTTP and WebSocket contract so

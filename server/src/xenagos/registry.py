@@ -16,11 +16,11 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from xenagos.access import SECRET_HEADER, SECRET_PARAM, Access
 from xenagos.paths import state_home
 from xenagos.target import ReviewTarget
 
 LOOPBACK = "127.0.0.1"
-SECRET_HEADER = "X-Xenagos-Secret"  # noqa: S105 - a header name, not a secret
 STARTUP_GRACE_SECONDS = 15.0
 
 
@@ -39,7 +39,17 @@ class Entry(BaseModel):
 
     @property
     def url(self) -> str:
+        """Address of the server, without the secret."""
         return f"http://{LOOPBACK}:{self.port}/"
+
+    @property
+    def viewer_url(self) -> str:
+        """Address to open the viewer with; it carries the secret."""
+        return f"{self.url}?{SECRET_PARAM}={self.secret}"
+
+    @property
+    def access(self) -> Access:
+        return Access(review_id=self.review_id, port=self.port, secret=self.secret)
 
 
 def new_entry(target: ReviewTarget, port: int) -> Entry:

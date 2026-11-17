@@ -46,9 +46,9 @@ def listen_on_loopback(port: int) -> socket.socket:
 
 
 def present(entry: Entry, open_browser: bool) -> None:
-    print(f"Viewer: {entry.url}", flush=True)
+    print(f"Viewer: {entry.viewer_url}", flush=True)
     if open_browser:
-        webbrowser.open(entry.url)
+        webbrowser.open(entry.viewer_url)
 
 
 def _end_on_terminate(signum: int, frame: FrameType | None) -> None:
@@ -69,7 +69,9 @@ def serve(target: ReviewTarget, port: int, open_browser: bool) -> None:
         print(f"Reviewing {target.label} ({target.base[:10]}..{target.head[:10]}), review {target.review_id}")
         present(entry, open_browser)
         print("Ctrl+C stops the review.", flush=True)
-        server = uvicorn.Server(uvicorn.Config(create_app(target, bundled_viewer_dir()), log_level="warning"))
+        server = uvicorn.Server(
+            uvicorn.Config(create_app(target, entry.access, bundled_viewer_dir()), log_level="warning")
+        )
         # uvicorn shuts down gracefully on SIGTERM, then raises it again under the handler found before it started.
         # Ending through SystemExit here lets the record be released below.
         signal.signal(signal.SIGTERM, _end_on_terminate)
@@ -96,7 +98,9 @@ def cmd_list(argv: Sequence[str]) -> int:
         print("No open reviews.")
         return 0
     rows = [("REVIEW", "TARGET", "COMMITS", "ADDRESS", "AGENT", "REPOSITORY")]
-    rows += [(e.review_id, e.label, f"{e.base[:8]}..{e.head[:8]}", e.url, e.session or "-", e.repo) for e in entries]
+    rows += [
+        (e.review_id, e.label, f"{e.base[:8]}..{e.head[:8]}", e.viewer_url, e.session or "-", e.repo) for e in entries
+    ]
     widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]) - 1)]
     for row in rows:
         print("  ".join(cell.ljust(width) for cell, width in zip(row, widths, strict=False)) + "  " + row[-1])

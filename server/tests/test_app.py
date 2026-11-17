@@ -49,6 +49,15 @@ def test_serves_built_viewer(target: ReviewTarget, tmp_path: Path) -> None:
     assert "<title>xenagos</title>" in response.text
 
 
+def test_viewer_page_is_revalidated_and_bundles_are_cached(target: ReviewTarget, tmp_path: Path) -> None:
+    (tmp_path / "index.html").write_text("<title>xenagos</title>")
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "index-abc123.js").write_text("1")
+    c = client(target, tmp_path)
+    assert c.get("/").headers["cache-control"] == "no-cache"
+    assert c.get("/assets/index-abc123.js").headers["cache-control"] == "public, max-age=31536000, immutable"
+
+
 def test_explains_missing_viewer(target: ReviewTarget) -> None:
     response = client(target).get("/")
     assert response.status_code == 503

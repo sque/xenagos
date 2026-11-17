@@ -15,7 +15,8 @@ export const OVERLAY_CSS = `
 .xen-mark[data-open-top] { border-top-style: dashed; border-top-left-radius: 0; border-top-right-radius: 0; }
 .xen-mark[data-open-bottom] { border-bottom-style: dashed; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .xen-caption {
-  position: absolute; box-sizing: border-box; max-width: 26rem; padding: 0.5rem 0.75rem; border-radius: 6px;
+  position: absolute; box-sizing: border-box; width: max-content; max-width: 26rem; padding: 0.5rem 0.75rem;
+  border-radius: 6px;
   font: 13px/1.45 system-ui, sans-serif; white-space: normal;
   color: var(--xen-caption-fg, #111); background: var(--xen-caption-bg, #fffbe6);
   border: 1px solid var(--xen-spot, rgb(234 179 8)); box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);

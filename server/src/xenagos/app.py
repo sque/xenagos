@@ -7,6 +7,8 @@ from typing import Any
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
+from starlette.types import Scope
 
 from xenagos import __version__
 from xenagos.access import Access, AccessControl
@@ -17,6 +19,17 @@ from xenagos.review import PlanRejected, Review
 from xenagos.target import ReviewTarget
 
 VIEWER_MISSING = "The viewer is not built. Run `make web` in the xenagos repository, or install a built package."
+
+
+class ViewerFiles(StaticFiles):
+    """The built viewer. Its page must be revalidated on every load, or a browser keeps an old page that names an old
+    bundle after xenagos is rebuilt or upgraded; the bundles have content hashes in their names and never change."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        immutable = path.startswith("assets/")
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable" if immutable else "no-cache"
+        return response
 
 
 def bundled_viewer_dir() -> Path | None:
@@ -86,5 +99,5 @@ def create_app(target: ReviewTarget, access: Access, viewer_dir: Path | None) ->
             return VIEWER_MISSING
 
     else:
-        app.mount("/", StaticFiles(directory=viewer_dir, html=True), name="viewer")
+        app.mount("/", ViewerFiles(directory=viewer_dir, html=True), name="viewer")
     return app

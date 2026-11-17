@@ -35,10 +35,17 @@ const CAPTION_GAP = 8
 export class Overlay {
   private mark: Mark | null = null
   private caption: { text: string; shown: boolean } | null = null
+  // Kept across redraws and only moved, so the caption's fade is not restarted by every library render.
+  private readonly markEl = document.createElement('div')
+  private readonly captionEl = document.createElement('div')
   /** Turned off only by the regression check, to prove that the redraw after each library render is needed. */
   redrawAfterRender = true
 
-  constructor(private readonly view: CodeView) {}
+  constructor(private readonly view: CodeView) {
+    this.markEl.className = 'xen-mark'
+    this.captionEl.className = 'xen-caption'
+    this.captionEl.setAttribute('role', 'status')
+  }
 
   setMark(mark: Mark | null): void {
     this.mark = mark
@@ -57,20 +64,22 @@ export class Overlay {
 
   /** The drawn mark, if the target is at least partly rendered. */
   markElement(): HTMLElement | null {
-    return this.view.root?.querySelector<HTMLElement>('.xen-mark') ?? null
+    return this.markEl.isConnected ? this.markEl : null
   }
 
   captionElement(): HTMLElement | null {
-    return this.view.root?.querySelector<HTMLElement>('.xen-caption') ?? null
+    return this.captionEl.isConnected ? this.captionEl : null
   }
 
   redraw(): void {
-    const codes = this.view.codeElements()
-    for (const code of codes) layerFor(code).replaceChildren()
     const drawn = this.mark === null ? null : this.drawMark(this.mark)
-    if (this.caption === null) return
-    const code = drawn?.code ?? (this.mark === null ? codes[0] : undefined)
-    if (code === undefined) return // the target is outside the rendered window: no caption either
+    if (drawn === null) this.markEl.remove()
+    const code = drawn?.code ?? (this.mark === null ? this.view.codeElements()[0] : undefined)
+    // No caption without a file, or when the target is outside the rendered window.
+    if (this.caption === null || code === undefined) {
+      this.captionEl.remove()
+      return
+    }
     this.drawCaption(code, drawn?.box ?? null, this.caption)
   }
 
@@ -89,24 +98,20 @@ export class Overlay {
 
     const top = first.getBoundingClientRect().top
     const bottom = last.getBoundingClientRect().bottom
-    let left: number
-    let right: number
-    if (mark.form === 'lines') {
-      left = first.getBoundingClientRect().left
-      right = Math.max(...rows.map((row) => row.getBoundingClientRect().right))
-    } else {
-      const extents = rows
-        .map((row, index) => {
-          const line = this.view.lineOf(row, mark.side, code)
-          const from = line === mark.startLine && mark.startCol != null ? mark.startCol : 1
-          const to = line === mark.endLine && mark.endCol != null ? mark.endCol : null
-          return textBox(row, from, to, index === 0 ? row : null)
-        })
-        .filter((box): box is DOMRect => box !== null)
-      if (extents.length === 0) return null
-      left = Math.min(...extents.map((box) => box.left))
-      right = Math.max(...extents.map((box) => box.right))
-    }
+    const extents = rows
+      .map((row, index) => {
+        const line = this.view.lineOf(row, mark.side, code)
+        const from = line === mark.startLine && mark.startCol != null ? mark.startCol : 1
+        const to = line === mark.endLine && mark.endCol != null ? mark.endCol : null
+        return textBox(row, from, to, index === 0 ? row : null)
+      })
+      .filter((box): box is DOMRect => box !== null)
+    if (extents.length === 0) return null
+    const textLeft = Math.min(...extents.map((box) => box.left))
+    const textRight = Math.max(...extents.map((box) => box.right))
+    // The lines form spans the whole rows; its caption is still placed by the text, not by the band's far end.
+    const left = mark.form === 'lines' ? first.getBoundingClientRect().left : textLeft
+    const right = mark.form === 'lines' ? Math.max(...rows.map((row) => row.getBoundingClientRect().right)) : textRight
     const pad = PADDING[mark.form]
     const box: Box = {
       left: left - origin.x - pad,
@@ -114,23 +119,23 @@ export class Overlay {
       right: right - origin.x + pad,
       bottom: bottom - origin.y + (openBottom ? 0 : pad),
     }
-    const element = document.createElement('div')
-    element.className = 'xen-mark'
+    const element = this.markEl
     element.dataset.form = mark.form
-    if (openTop) element.dataset.openTop = ''
-    if (openBottom) element.dataset.openBottom = ''
+    toggle(element, 'data-open-top', openTop)
+    toggle(element, 'data-open-bottom', openBottom)
     place(element, box)
-    layerFor(code).append(element)
-    return { code, box }
+    attach(element, layerFor(code))
+    const anchor = mark.form === 'lines' ? { ...box, left: textLeft - origin.x, right: textRight - origin.x } : box
+    return { code, box: anchor }
   }
 
   private drawCaption(code: HTMLElement, target: Box | null, caption: { text: string; shown: boolean }): void {
-    const element = document.createElement('div')
-    element.className = 'xen-caption'
-    element.setAttribute('role', 'status')
-    element.textContent = caption.text
-    if (caption.shown) element.dataset.shown = ''
-    layerFor(code).append(element)
+    const element = this.captionEl
+    if (element.textContent !== caption.text) element.textContent = caption.text
+    toggle(element, 'data-shown', caption.shown)
+    element.style.width = ''
+    element.style.height = ''
+    attach(element, layerFor(code))
     const width = element.offsetWidth
     const height = element.offsetHeight
     const origin = localOrigin(code)
@@ -151,6 +156,14 @@ export class Overlay {
   }
 }
 
+function attach(element: HTMLElement, layer: HTMLElement): void {
+  if (element.parentElement !== layer) layer.append(element)
+}
+
+function toggle(element: HTMLElement, attribute: string, on: boolean): void {
+  element.toggleAttribute(attribute, on)
+}
+
 function layerFor(code: HTMLElement): HTMLElement {
   for (const child of code.children) {
     if (child instanceof HTMLElement && child.classList.contains('xen-layer')) return child
@@ -168,12 +181,14 @@ function localOrigin(code: HTMLElement): { x: number; y: number } {
   return { x: rect.left, y: rect.top }
 }
 
-/** The part of the code element visible in the scroller, in layer coordinates. */
+/** The part of the code element visible in the scroller, right of the sticky line-number gutter, in layer
+ * coordinates. */
 function visibleArea(scroller: HTMLElement, code: HTMLElement, origin: { x: number; y: number }): Box {
   const outer = scroller.getBoundingClientRect()
   const inner = code.getBoundingClientRect()
+  const gutter = code.querySelector(':scope > [data-gutter]')?.getBoundingClientRect().width ?? 0
   return {
-    left: Math.max(outer.left, inner.left) - origin.x,
+    left: Math.max(outer.left, inner.left + gutter) - origin.x,
     top: Math.max(outer.top, inner.top) - origin.y,
     right: Math.min(outer.right, inner.left + code.clientWidth) - origin.x,
     bottom: Math.min(outer.bottom, inner.bottom) - origin.y,

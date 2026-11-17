@@ -1,6 +1,12 @@
-import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, expect, test, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+import { FakeSocket } from './agent/fakeSocket'
 import { App } from './App'
+
+beforeEach(() => {
+  FakeSocket.all = []
+  vi.stubGlobal('WebSocket', FakeSocket)
+})
 
 afterEach(() => {
   cleanup()
@@ -17,11 +23,15 @@ const review = {
 }
 
 function serve(routes: Record<string, Response>) {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string) => Promise.resolve(routes[url]?.clone() ?? new Response('', { status: 404 }))),
-  )
+  const fetch = vi.fn((url: string, init?: RequestInit) => {
+    const key = init?.method === undefined || init.method === 'GET' ? url : `${init.method} ${url}`
+    return Promise.resolve(routes[key]?.clone() ?? new Response('', { status: 404 }))
+  })
+  vi.stubGlobal('fetch', fetch)
+  return fetch
 }
+
+const json = (body: unknown) => new Response(JSON.stringify(body))
 
 test('shows the target and both pinned commit ids', async () => {
   serve({ '/api/review': new Response(JSON.stringify(review)) })
@@ -41,4 +51,48 @@ test('says when the review cannot be loaded', async () => {
   serve({ '/api/review': new Response('', { status: 403 }) })
   render(<App />)
   expect((await screen.findByRole('alert')).textContent).toContain('403')
+})
+
+test('says the review has no agent session yet', async () => {
+  serve({ '/api/review': json(review), '/api/agent': json({ state: 'none' }) })
+  render(<App />)
+  expect(await screen.findByText(/No agent session yet/)).toBeDefined()
+})
+
+test('says why the session cannot be shown', async () => {
+  const reason = 'This session was started by hand in a terminal.'
+  serve({ '/api/review': json(review), '/api/agent': json({ state: 'not-shown', name: 'mine', reason }) })
+  render(<App />)
+  expect((await screen.findByRole('status')).textContent).toBe(reason)
+  expect(screen.getByText('mine')).toBeDefined()
+})
+
+test('asks the agent for a walkthrough', async () => {
+  const fetch = serve({
+    '/api/review': json(review),
+    '/api/agent': json({ state: 'none' }),
+    'POST /api/agent/request': json({ started: true, session: 's' }),
+  })
+  render(<App />)
+  fireEvent.click(await screen.findByText('Ask the agent for a walkthrough'))
+  expect((await screen.findByRole('status')).textContent).toContain('appears here once the agent submits one')
+  const call = fetch.mock.calls.find(([url]) => url === '/api/agent/request')
+  expect(JSON.parse(call?.[1]?.body as string)).toEqual({ kind: 'walkthrough' })
+})
+
+test('fetches the plan and the agent again when the server says they changed', async () => {
+  const fetch = serve({ '/api/review': json(review), '/api/agent': json({ state: 'none' }) })
+  render(<App />)
+  await screen.findByText('This review has no walkthrough yet.')
+  const count = (url: string) => fetch.mock.calls.filter(([u]) => u === url).length
+  const [socket] = FakeSocket.all
+  expect(socket?.url).toMatch(/^ws:.*\/api\/events$/)
+  const plans = count('/api/plan')
+  const agents = count('/api/agent')
+  socket?.receive(JSON.stringify({ type: 'plan' }))
+  socket?.receive(JSON.stringify({ type: 'agent' }))
+  await vi.waitFor(() => {
+    expect(count('/api/plan')).toBe(plans + 1)
+    expect(count('/api/agent')).toBe(agents + 1)
+  })
 })

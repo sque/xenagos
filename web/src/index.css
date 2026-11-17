@@ -67,3 +67,26 @@ button { font: inherit; color: inherit; }
 .tick.added { background: var(--tick-added); }
 .tick.deleted { background: var(--tick-deleted); }
 .tick.modified { background: var(--tick-modified); }
+:root { --terminal-bg: #0d1117; --terminal-fg: #e6edf3; }
+.workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(24rem, 38%); }
+.main { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.main > .walkthrough { flex: 1; }
+.empty button { margin: 0.25rem 0 0.5rem; padding: 0.35rem 0.8rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); cursor: pointer; }
+.agent { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--line); background: var(--terminal-bg); color: var(--terminal-fg); }
+.agentbar { display: flex; gap: 0.6rem; align-items: baseline; padding: 0.4rem 0.75rem; border-bottom: 1px solid #30363d; font-size: 0.85rem; }
+.agentname { font-weight: 600; }
+.activity { color: #9198a1; }
+.agentnote { padding: 0.75rem; margin: 0; color: #c9d1d9; }
+.session { position: relative; flex: 1; min-height: 0; }
+.terminal { position: absolute; inset: 0.25rem 0.25rem 0.25rem 0.5rem; }
+.terminalend { position: absolute; left: 0.75rem; right: 0.75rem; bottom: 0.75rem; padding: 0.6rem 0.75rem; border-radius: 6px; background: #161b22; border: 1px solid #30363d; }
+.terminalend p { margin: 0 0 0.4rem; }
+.terminalend button { padding: 0.25rem 0.7rem; border: 1px solid #30363d; border-radius: 6px; background: #21262d; cursor: pointer; }
+.askprompt { position: fixed; z-index: 10; padding: 0.6rem; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); box-shadow: 0 8px 24px rgb(0 0 0 / 0.2); }
+.askprompt textarea { width: 100%; resize: vertical; font: inherit; padding: 0.4rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.askwhere { margin: 0 0 0.4rem; font: 12px ui-monospace, monospace; color: var(--muted); }
+.askerror { margin: 0.4rem 0 0; color: var(--tick-deleted); }
+.askactions { display: flex; justify-content: flex-end; gap: 0.4rem; margin-top: 0.4rem; }
+.askactions button { padding: 0.25rem 0.8rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); cursor: pointer; }
+.askactions button[type="submit"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.askactions button:disabled { opacity: 0.5; cursor: default; }

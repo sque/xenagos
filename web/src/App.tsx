@@ -1,15 +1,28 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { AgentPane } from './agent/AgentPane'
+import { type AgentStatus, fetchAgent, request } from './agent/api'
+import { listen } from './agent/events'
 import type { Plan } from './generated/types'
 import { fetchPlan, fetchReview, type ReviewInfo } from './review'
-import { Walkthrough } from './walkthrough/Walkthrough'
+import { type Pointing, Walkthrough } from './walkthrough/Walkthrough'
 
 type Load =
   | { state: 'loading' }
   | { state: 'ready'; review: ReviewInfo; plan: Plan | null }
   | { state: 'failed'; message: string }
 
+const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
+
 export function App() {
   const [load, setLoad] = useState<Load>({ state: 'loading' })
+  const [agent, setAgent] = useState<AgentStatus | null>(null)
+  const [pointing, setPointing] = useState<Pointing | null>(null)
+
+  const refreshAgent = useCallback(() => {
+    fetchAgent().then(setAgent, (error: unknown) => {
+      setAgent({ state: 'unavailable', reason: message(error) })
+    })
+  }, [])
 
   useEffect(() => {
     let live = true
@@ -18,13 +31,35 @@ export function App() {
         if (live) setLoad({ state: 'ready', review, plan })
       },
       (error: unknown) => {
-        if (live) setLoad({ state: 'failed', message: error instanceof Error ? error.message : String(error) })
+        if (live) setLoad({ state: 'failed', message: message(error) })
+      },
+    )
+    const refreshPlan = () => {
+      fetchPlan().then(
+        (plan) => {
+          if (live) setLoad((current) => (current.state === 'ready' ? { ...current, plan } : current))
+        },
+        () => undefined,
+      )
+    }
+    refreshAgent()
+    let seq = 0
+    const stop = listen(
+      (event) => {
+        if (event.type === 'plan') refreshPlan()
+        else if (event.type === 'agent') refreshAgent()
+        else setPointing({ target: event.target, form: event.form, seq: ++seq })
+      },
+      () => {
+        refreshAgent()
+        refreshPlan()
       },
     )
     return () => {
       live = false
+      stop()
     }
-  }, [])
+  }, [refreshAgent])
 
   return (
     <div className="app">
@@ -32,14 +67,52 @@ export function App() {
         <h1>xenagos</h1>
         {load.state === 'ready' && <ReviewHeader review={load.review} />}
       </header>
-      {load.state === 'loading' && <p className="notice">Loading the review…</p>}
-      {load.state === 'failed' && (
-        <p className="notice" role="alert">
-          Could not load the review: {load.message}
-        </p>
+      <div className="workspace">
+        <main className="main">
+          {load.state === 'loading' && <p className="notice">Loading the review…</p>}
+          {load.state === 'failed' && (
+            <p className="notice" role="alert">
+              Could not load the review: {load.message}
+            </p>
+          )}
+          {load.state === 'ready' && load.plan === null && <NoWalkthrough />}
+          {load.state === 'ready' && load.plan !== null && <Walkthrough plan={load.plan} pointing={pointing} />}
+        </main>
+        <AgentPane status={agent} onEnded={refreshAgent} />
+      </div>
+    </div>
+  )
+}
+
+/** Walkthrough mode with no plan (spec: walkthrough-plan, "A walkthrough is asked for, not automatic"). */
+function NoWalkthrough() {
+  const [asked, setAsked] = useState<{ state: 'idle' | 'asking' | 'asked' } | { state: 'failed'; error: string }>({
+    state: 'idle',
+  })
+  return (
+    <div className="notice empty">
+      <p>This review has no walkthrough yet.</p>
+      <button
+        type="button"
+        disabled={asked.state === 'asking'}
+        onClick={() => {
+          setAsked({ state: 'asking' })
+          request({ kind: 'walkthrough' }).then(
+            () => {
+              setAsked({ state: 'asked' })
+            },
+            (error: unknown) => {
+              setAsked({ state: 'failed', error: message(error) })
+            },
+          )
+        }}
+      >
+        Ask the agent for a walkthrough
+      </button>
+      {asked.state === 'asked' && (
+        <p role="status">Asked. The walkthrough appears here once the agent submits one that passes the checks.</p>
       )}
-      {load.state === 'ready' && load.plan === null && <p className="notice">This review has no walkthrough yet.</p>}
-      {load.state === 'ready' && load.plan !== null && <Walkthrough plan={load.plan} />}
+      {asked.state === 'failed' && <p role="alert">{asked.error}</p>}
     </div>
   )
 }

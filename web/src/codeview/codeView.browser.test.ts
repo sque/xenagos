@@ -3,7 +3,7 @@
 // as in spikes 1.2 and 2.6. The expected positions are measured here independently of overlay.ts.
 
 import { afterEach, describe, expect, test } from 'vitest'
-import { CodeView, type FileSides, type Side } from './codeView'
+import { CodeView, type FileSides, type Side, selection } from './codeView'
 import { type Mark, Overlay } from './overlay'
 
 const TOLERANCE = 0.5 // px; the spikes measured 0.02
@@ -312,4 +312,23 @@ describe('overlay regression check (task 6.6)', () => {
     }
     expect(worst).toBeGreaterThan(5)
   })
+})
+
+test('a selection names its file, sides and lines in reading order', () => {
+  const file = { path: 'app.py', oldPath: 'old.py', base: 'a\n', head: 'b\n' }
+  expect(selection(file, { start: 12, side: 'additions', end: 10, endSide: 'additions' })).toEqual({
+    path: 'app.py',
+    startSide: 'head',
+    startLine: 10,
+    endSide: 'head',
+    endLine: 12,
+  })
+  expect(selection(file, { start: 4, side: 'deletions', end: 6, endSide: 'additions' })).toEqual({
+    path: 'app.py',
+    startSide: 'base',
+    startLine: 4,
+    endSide: 'head',
+    endLine: 6,
+  })
+  expect(selection(file, { start: 3, end: 3 })).toMatchObject({ startSide: 'head', endSide: 'head' })
 })

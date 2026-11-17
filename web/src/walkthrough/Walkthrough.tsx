@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { AskPrompt, type AskAt } from '../agent/AskPrompt'
 import { CodeView, type FileSides, type Tick } from '../codeview/codeView'
 import { Overlay } from '../codeview/overlay'
-import type { Plan } from '../generated/types'
+import type { Plan, Show } from '../generated/types'
 import { fetchFile } from '../review'
 import { Icon, type IconName } from './icons'
 import { Player, type PlayerState } from './player'
@@ -11,9 +12,13 @@ import { BrowserVoice, silentVoice } from './voice'
 interface Engine {
   player: Player
   stage: CodeStage
+  view: CodeView
 }
 
-export function Walkthrough({ plan }: { plan: Plan }) {
+/** Something the agent pointed at with `xen show`; `seq` tells two equal requests apart. */
+export type Pointing = Show & { seq: number }
+
+export function Walkthrough({ plan, pointing }: { plan: Plan; pointing: Pointing | null }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -22,6 +27,7 @@ export function Walkthrough({ plan }: { plan: Plan }) {
   const [file, setFile] = useState<FileSides | null>(null)
   const [ticks, setTicks] = useState<Tick[]>([])
   const [voiceOn, setVoiceOn] = useState(BrowserVoice.available())
+  const [askAt, setAskAt] = useState<AskAt | null>(null)
 
   useEffect(() => {
     const scroller = scrollerRef.current
@@ -37,17 +43,32 @@ export function Walkthrough({ plan }: { plan: Plan }) {
       setTicks(view.ticks())
     })
     const player = new Player(plan, stage, silentVoice, setState)
-    engine.current = { player, stage }
+    engine.current = { player, stage, view }
     const resize = new ResizeObserver(() => {
       overlay.redraw()
     })
     resize.observe(scroller)
+    // The library reports a finished selection from its own pointer handler; this one runs first (capture phase),
+    // so the prompt can open where the pointer was released.
+    const pointer = { x: 0, y: 0 }
+    const remember = (event: PointerEvent) => {
+      pointer.x = event.clientX
+      pointer.y = event.clientY
+    }
+    panel.addEventListener('pointerup', remember, { capture: true })
+    view.onSelect = (selection) => {
+      if (selection === null) return
+      const fallback = scroller.getBoundingClientRect()
+      const at = pointer.x === 0 && pointer.y === 0 ? { x: fallback.left + 80, y: fallback.top + 80 } : pointer
+      setAskAt({ selection, x: at.x, y: at.y })
+    }
     const first = plan.sections[0].steps[0].target
     if ('path' in first) {
       void stage.showFile(first.path, new AbortController().signal)
     }
     return () => {
       player.stop()
+      panel.removeEventListener('pointerup', remember, { capture: true })
       resize.disconnect()
       view.destroy()
       engine.current = null
@@ -57,6 +78,29 @@ export function Walkthrough({ plan }: { plan: Plan }) {
   useEffect(() => {
     engine.current?.player.setVoice(voiceOn ? new BrowserVoice() : silentVoice)
   }, [voiceOn])
+
+  // The agent points at code while it answers: playback pauses and the target is shown without a caption.
+  useEffect(() => {
+    const current = engine.current
+    if (pointing === null || current === null || !('path' in pointing.target)) return
+    const target = pointing.target
+    const form = pointing.form ?? 'lines'
+    current.player.pause()
+    const controller = new AbortController()
+    const point = async () => {
+      await current.stage.caption(null, controller.signal)
+      current.stage.spotlight(null, form)
+      await current.stage.showFile(target.path, controller.signal)
+      await current.stage.bringIntoView(target, controller.signal)
+      current.stage.spotlight(target, form)
+    }
+    point().catch((error: unknown) => {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) throw error
+    })
+    return () => {
+      controller.abort(new DOMException('replaced', 'AbortError'))
+    }
+  }, [pointing])
 
   const player = () => engine.current?.player
   const section = plan.sections[state.section]
@@ -129,6 +173,18 @@ export function Walkthrough({ plan }: { plan: Plan }) {
           </div>
         </div>
         <div className="filebar">{file?.path ?? ' '}</div>
+        {askAt !== null && (
+          <AskPrompt
+            key={`${askAt.selection.path}:${String(askAt.selection.startLine)}:${String(askAt.selection.endLine)}`}
+            at={askAt}
+            position={{ section: state.section + 1, step: state.step + 1 }}
+            onAsking={() => engine.current?.player.pause()}
+            onClose={() => {
+              setAskAt(null)
+              engine.current?.view.clearSelection()
+            }}
+          />
+        )}
         <div className="codepanel" ref={panelRef}>
           <div className="scroller" ref={scrollerRef}>
             <div ref={contentRef} />

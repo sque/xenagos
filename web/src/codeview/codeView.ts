@@ -8,6 +8,7 @@ import {
   DEFAULT_THEMES,
   DIFFS_TAG_NAME,
   type FileDiffMetadata,
+  type SelectedLineRange,
   getFiletypeFromFileName,
   parseDiffFromFile,
   preloadHighlighter,
@@ -28,6 +29,16 @@ export interface FileSides {
   head: string | null
 }
 
+/** Lines the reviewer selected with the library's line selection. Each end names its side: in the unified view a
+ * selection can start on a deleted line and end on an added one. */
+export interface LineSelection {
+  path: string
+  startSide: Side
+  startLine: number
+  endSide: Side
+  endLine: number
+}
+
 export interface Tick {
   /** Position along the scroll track, from 0 (top) to 1 (bottom). */
   position: number
@@ -41,6 +52,7 @@ ${OVERLAY_CSS}
 `
 
 const librarySide = (side: Side) => (side === 'base' ? 'deletions' : 'additions')
+const ourSide = (side: SelectedLineRange['side']): Side => (side === 'deletions' ? 'base' : 'head')
 
 export class CodeView {
   readonly virtualizer = new Virtualizer()
@@ -49,6 +61,8 @@ export class CodeView {
   private diff: FileDiffMetadata | undefined
   private layoutStyle: Layout = 'unified'
   file: FileSides | undefined
+  /** Called when the reviewer finishes selecting lines, and with null when the selection is cleared. */
+  onSelect: (selection: LineSelection | null) => void = () => undefined
 
   constructor(
     readonly scroller: HTMLElement,
@@ -78,6 +92,9 @@ export class CodeView {
       enableLineSelection: true,
       themeType: 'system' as const,
       unsafeCSS: VIEW_CSS,
+      onLineSelectionEnd: (range: SelectedLineRange | null) => {
+        this.onSelect(range === null ? null : selection(file, range))
+      },
       onPostRender: () => {
         // Synchronously, in the library's post-render hook: a redraw deferred to the next frame leaves marks
         // up to a thousand pixels off for a few frames (spike 2.6).
@@ -108,6 +125,10 @@ export class CodeView {
     this.file = file
     this.scroller.scrollTop = 0
     await firstRender
+  }
+
+  clearSelection(): void {
+    this.instance?.setSelectedLines(null)
   }
 
   /** Reveal collapsed unchanged lines (browse mode). `hunkIndex` names the collapsed region before that hunk;
@@ -223,4 +244,12 @@ export class CodeView {
     this.container?.remove()
     this.virtualizer.cleanUp()
   }
+}
+
+export function selection(file: FileSides, range: SelectedLineRange): LineSelection {
+  const start = { side: ourSide(range.side), line: range.start }
+  const end = { side: ourSide(range.endSide ?? range.side), line: range.end }
+  // Dragged upwards on one side: name the lines in reading order.
+  const [first, last] = start.side === end.side && start.line > end.line ? [end, start] : [start, end]
+  return { path: file.path, startSide: first.side, startLine: first.line, endSide: last.side, endLine: last.line }
 }

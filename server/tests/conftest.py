@@ -42,10 +42,9 @@ def init_repo(path: Path, branch: str = "main") -> FixtureRepo:
     return repo
 
 
-@pytest.fixture
-def repo(tmp_path: Path) -> FixtureRepo:
+def feature_repo(path: Path) -> FixtureRepo:
     """main: c1, c2, m3. feature forks from c2: f1, f2. Checked out on feature."""
-    r = init_repo(tmp_path / "repo")
+    r = init_repo(path)
     r.commit("c1", {"app.py": "print('one')\n"})
     r.commit("c2", {"app.py": "print('two')\n"})
     r.git("switch", "-q", "-c", "feature")
@@ -55,3 +54,16 @@ def repo(tmp_path: Path) -> FixtureRepo:
     r.commit("m3", {"README.md": "readme\n"})
     r.git("switch", "-q", "feature")
     return r
+
+
+@pytest.fixture
+def repo(tmp_path: Path) -> FixtureRepo:
+    return feature_repo(tmp_path / "repo")
+
+
+@pytest.fixture
+def state_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """An empty XDG state home for this test, also seen by the servers it starts."""
+    path = tmp_path / "state"
+    monkeypatch.setenv("XDG_STATE_HOME", str(path))
+    return path

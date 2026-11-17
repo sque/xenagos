@@ -17,7 +17,7 @@ def target(repo: FixtureRepo) -> ReviewTarget:
 def test_health_reports_version(target: ReviewTarget) -> None:
     response = TestClient(create_app(target, None)).get("/api/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "version": __version__}
+    assert response.json() == {"status": "ok", "version": __version__, "review": target.review_id}
 
 
 def test_review_reports_pinned_ids(target: ReviewTarget, repo: FixtureRepo) -> None:

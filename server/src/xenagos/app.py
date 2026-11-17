@@ -35,7 +35,7 @@ def create_app(target: ReviewTarget, viewer_dir: Path | None) -> FastAPI:
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
-        return {"status": "ok", "version": __version__}
+        return {"status": "ok", "version": __version__, "review": target.review_id}
 
     @app.get("/api/review")
     def review() -> ReviewInfo:

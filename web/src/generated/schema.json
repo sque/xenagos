@@ -104,6 +104,39 @@
       "title": "AgentStatus",
       "type": "object"
     },
+    "CategoryCoverage": {
+      "additionalProperties": false,
+      "properties": {
+        "added": {
+          "type": "integer"
+        },
+        "category": {
+          "enum": [
+            "code",
+            "tests",
+            "generated"
+          ],
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "$ref": "#/$defs/UncoveredFile"
+          },
+          "type": "array"
+        },
+        "removed": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "category",
+        "files",
+        "added",
+        "removed"
+      ],
+      "title": "CategoryCoverage",
+      "type": "object"
+    },
     "ChangedFile": {
       "additionalProperties": false,
       "description": "A file the change touches, as the diff of the pinned revisions has it.",
@@ -266,6 +299,33 @@
         "endLine"
       ],
       "title": "CodeTarget",
+      "type": "object"
+    },
+    "Coverage": {
+      "additionalProperties": false,
+      "description": "What the plan leaves out, by category in the order Code, Tests, Generated; empty categories are omitted.",
+      "properties": {
+        "categories": {
+          "items": {
+            "$ref": "#/$defs/CategoryCoverage"
+          },
+          "type": "array"
+        },
+        "files": {
+          "description": "How many files have a hunk no section claims.",
+          "type": "integer"
+        },
+        "hunks": {
+          "description": "How many hunks no section claims.",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "categories",
+        "hunks",
+        "files"
+      ],
+      "title": "Coverage",
       "type": "object"
     },
     "Delivery": {
@@ -779,6 +839,80 @@
         "hash"
       ],
       "title": "StyleRef",
+      "type": "object"
+    },
+    "UncoveredFile": {
+      "additionalProperties": false,
+      "description": "A changed file with hunks that no section of the plan claims (spec: walkthrough-plan, \"Coverage is visible\").",
+      "properties": {
+        "added": {
+          "description": "Lines added by the hunks listed.",
+          "type": "integer"
+        },
+        "binary": {
+          "type": "boolean"
+        },
+        "category": {
+          "enum": [
+            "code",
+            "tests",
+            "generated"
+          ],
+          "type": "string"
+        },
+        "hunks": {
+          "description": "The hunks no section claims.",
+          "items": {
+            "$ref": "#/$defs/HunkInfo"
+          },
+          "type": "array"
+        },
+        "oldPath": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "partly": {
+          "description": "Some of the file's hunks are claimed by a section, the ones listed are not.",
+          "type": "boolean"
+        },
+        "path": {
+          "description": "Head path, or base path for a deleted file.",
+          "type": "string"
+        },
+        "removed": {
+          "description": "Lines removed by the hunks listed.",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "renamed",
+            "copied",
+            "type-changed"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "oldPath",
+        "status",
+        "binary",
+        "category",
+        "partly",
+        "hunks",
+        "added",
+        "removed"
+      ],
+      "title": "UncoveredFile",
       "type": "object"
     },
     "Visual": {

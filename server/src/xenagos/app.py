@@ -23,9 +23,9 @@ from xenagos.api import (
     AgentRequest,
     AgentStatus,
     ChangedFile,
+    Coverage,
     Delivery,
     FileView,
-    HunkInfo,
     PlanRejection,
     Question,
     ReviewInfo,
@@ -37,6 +37,7 @@ from xenagos.api import (
     VisualAddition,
     VoiceInfo,
 )
+from xenagos.coverage import hunk_info, not_covered
 from xenagos.events import Events
 from xenagos.files import BINARY
 from xenagos.plan import Plan
@@ -177,19 +178,17 @@ def create_app(
                 old_path=c.old_path,
                 status=c.status,
                 binary=c.binary,
-                hunks=[
-                    HunkInfo(
-                        id=h.id,
-                        base_start=h.base_start,
-                        base_count=h.base_count,
-                        head_start=h.head_start,
-                        head_count=h.head_count,
-                    )
-                    for h in c.hunks
-                ],
+                hunks=[hunk_info(h) for h in c.hunks],
             )
             for c in state.changes
         ]
+
+    @app.get("/api/coverage")
+    def coverage() -> Coverage:
+        """The hunks the current plan leaves out, by category, with line counts."""
+        if state.plan is None:
+            raise HTTPException(404, "this review has no walkthrough yet")
+        return not_covered(state.plan, state.changes, state.categories)
 
     @app.get("/api/file")
     def file(path: str) -> FileView:

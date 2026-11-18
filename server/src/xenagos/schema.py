@@ -13,6 +13,7 @@ from xenagos.api import (
     AgentRequest,
     AgentStatus,
     ChangedFile,
+    Coverage,
     Delivery,
     FileView,
     PlanRejection,
@@ -38,6 +39,7 @@ def export() -> dict[str, Any]:
             (Show, "serialization"),
             (SessionChoiceItem, "serialization"),
             (ChangedFile, "serialization"),
+            (Coverage, "serialization"),
         ],
         title="xenagos",
     )

@@ -13,6 +13,7 @@ from pydantic import ValidationError
 
 from xenagos import anchors, narration
 from xenagos.api import Show, StepAddition, VisualAddition
+from xenagos.categories import Category, categorize
 from xenagos.config import ConfigError, Limits, Style
 from xenagos.diff import FileChange, changes
 from xenagos.files import RevisionFiles
@@ -46,6 +47,11 @@ class Review:
     @cached_property
     def changes(self) -> list[FileChange]:
         return changes(self.target.repo, self.target.base, self.target.head)
+
+    @cached_property
+    def categories(self) -> dict[str, Category]:
+        """The category of each changed file, by its head path (base path when deleted)."""
+        return categorize(self.target.repo, self.target.head, [c.path for c in self.changes])
 
     def change_for(self, path: str) -> FileChange | None:
         return next((c for c in self.changes if path in (c.path, c.old_path)), None)

@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field, PositiveInt
 
+from xenagos.categories import Category
 from xenagos.plan import (
     CodeTarget,
     Form,
@@ -170,3 +171,32 @@ class ChangedFile(Model):
     status: Literal["added", "modified", "deleted", "renamed", "copied", "type-changed"]
     binary: bool
     hunks: list[HunkInfo]
+
+
+class UncoveredFile(Model):
+    """A changed file with hunks that no section of the plan claims (spec: walkthrough-plan, "Coverage is visible")."""
+
+    path: str = Field(description="Head path, or base path for a deleted file.")
+    old_path: str | None
+    status: Literal["added", "modified", "deleted", "renamed", "copied", "type-changed"]
+    binary: bool
+    category: Category
+    partly: bool = Field(description="Some of the file's hunks are claimed by a section, the ones listed are not.")
+    hunks: list[HunkInfo] = Field(description="The hunks no section claims.")
+    added: int = Field(description="Lines added by the hunks listed.")
+    removed: int = Field(description="Lines removed by the hunks listed.")
+
+
+class CategoryCoverage(Model):
+    category: Category
+    files: list[UncoveredFile]
+    added: int
+    removed: int
+
+
+class Coverage(Model):
+    """What the plan leaves out, by category in the order Code, Tests, Generated; empty categories are omitted."""
+
+    categories: list[CategoryCoverage]
+    hunks: int = Field(description="How many hunks no section claims.")
+    files: int = Field(description="How many files have a hunk no section claims.")

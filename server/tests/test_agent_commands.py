@@ -75,6 +75,7 @@ def test_agent_opens_a_review_and_writes_its_walkthrough(
 
     status, out, _ = xen(capsys, "plan", "submit", write(tmp_path, "plan.json", SAMPLE))
     assert (status, out.split(".")[0]) == (0, "Plan accepted: 2 sections, 4 steps")
+    assert out.endswith("Every hunk is claimed by a section.\n")
     status, out, _ = xen(capsys, "plan", "get")
     assert json.loads(out)["sections"][0]["title"] == "Greet with the feature's name"
     status, out, _ = xen(capsys, "plan", "get", "--without-narration")

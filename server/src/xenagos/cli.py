@@ -10,6 +10,7 @@ started again from the review's saved state (design decision 4a).
 """
 
 import argparse
+import contextlib
 import json
 import re
 import signal
@@ -27,9 +28,11 @@ from typing import Any
 import uvicorn
 
 from xenagos import __version__, claude, config, registry
+from xenagos.api import Coverage
 from xenagos.app import IdlePolicy, bundled_viewer_dir, create_app
 from xenagos.claude import ClaudeError
 from xenagos.client import ServerError, call
+from xenagos.coverage import summary as coverage_summary
 from xenagos.diff import changes
 from xenagos.guide import RULES, hunk_list, style_section
 from xenagos.registry import LOOPBACK, Entry
@@ -443,6 +446,8 @@ def cmd_plan(argv: Sequence[str]) -> int:
         except ServerError as error:
             raise _rejected("Plan", error) from error
         print(f"Plan accepted: {_plan_summary(plan)}. The reviewer sees it at {entry.viewer_url}")
+        with contextlib.suppress(ServerError):
+            print(coverage_summary(Coverage.model_validate(call(entry, "GET", "/api/coverage"))))
         return 0
     entry = locate(args.review)
     path = "/api/plan/without-narration" if args.without_narration else "/api/plan"

@@ -41,6 +41,59 @@ export interface AgentStatus {
   state: "none" | "attachable" | "not-shown" | "ended" | "unavailable";
 }
 /**
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "CategoryCoverage".
+ */
+export interface CategoryCoverage {
+  added: number;
+  category: "code" | "tests" | "generated";
+  files: UncoveredFile[];
+  removed: number;
+}
+/**
+ * A changed file with hunks that no section of the plan claims (spec: walkthrough-plan, "Coverage is visible").
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "UncoveredFile".
+ */
+export interface UncoveredFile {
+  /**
+   * Lines added by the hunks listed.
+   */
+  added: number;
+  binary: boolean;
+  category: "code" | "tests" | "generated";
+  /**
+   * The hunks no section claims.
+   */
+  hunks: HunkInfo[];
+  oldPath: string | null;
+  /**
+   * Some of the file's hunks are claimed by a section, the ones listed are not.
+   */
+  partly: boolean;
+  /**
+   * Head path, or base path for a deleted file.
+   */
+  path: string;
+  /**
+   * Lines removed by the hunks listed.
+   */
+  removed: number;
+  status: "added" | "modified" | "deleted" | "renamed" | "copied" | "type-changed";
+}
+/**
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "HunkInfo".
+ */
+export interface HunkInfo {
+  baseCount: number;
+  baseStart: number;
+  headCount: number;
+  headStart: number;
+  id: string;
+}
+/**
  * A file the change touches, as the diff of the pinned revisions has it.
  *
  * This interface was referenced by `Root`'s JSON-Schema
@@ -55,17 +108,6 @@ export interface ChangedFile {
    */
   path: string;
   status: "added" | "modified" | "deleted" | "renamed" | "copied" | "type-changed";
-}
-/**
- * This interface was referenced by `Root`'s JSON-Schema
- * via the `definition` "HunkInfo".
- */
-export interface HunkInfo {
-  baseCount: number;
-  baseStart: number;
-  headCount: number;
-  headStart: number;
-  id: string;
 }
 /**
  * Lines the reviewer selected. In the unified view a selection can start on a deleted line and end on an added
@@ -105,6 +147,23 @@ export interface CodeTarget {
   side?: "base" | "head";
   startCol?: number | null;
   startLine: number;
+}
+/**
+ * What the plan leaves out, by category in the order Code, Tests, Generated; empty categories are omitted.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "Coverage".
+ */
+export interface Coverage {
+  categories: CategoryCoverage[];
+  /**
+   * How many files have a hunk no section claims.
+   */
+  files: number;
+  /**
+   * How many hunks no section claims.
+   */
+  hunks: number;
 }
 /**
  * What happened to a question or request.

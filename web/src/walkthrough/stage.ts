@@ -2,7 +2,7 @@
 
 import type { CodeView, FileSides } from '../codeview/codeView'
 import type { Form, Overlay } from '../codeview/overlay'
-import type { CodeTarget } from '../generated/types'
+import type { CodeTarget, VisualTarget } from '../generated/types'
 import { animateScroll, reducedMotion, wait } from './motion'
 import type { Stage } from './player'
 
@@ -12,6 +12,8 @@ const TARGET_AT = 0.4
 
 export class CodeStage implements Stage {
   private captionText: string | null = null
+  /** Shows a spotlight on an element of the section's visual; set by the walkthrough, which owns the visual pane. */
+  onVisual: (target: VisualTarget | null, form: Form) => void = () => undefined
 
   constructor(
     private readonly view: CodeView,
@@ -65,6 +67,10 @@ export class CodeStage implements Stage {
             form,
           },
     )
+  }
+
+  visual(target: VisualTarget | null, form: Form): void {
+    this.onVisual(target, form)
   }
 
   async caption(text: string | null, signal: AbortSignal): Promise<void> {

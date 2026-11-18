@@ -6,6 +6,9 @@ A request is let through only when all of these hold:
 - its `Origin`, when it has one, is this server, which stops pages of other sites, including sandboxed frames;
 - it carries this server's secret: in the review's cookie (the viewer), or in a header (the `xen` command).
 
+One exception: files under `/visual-assets/` are served without the secret. They are copies of public libraries
+(Mermaid) that a visual loads from its sandboxed frame, whose origin is opaque, so the browser sends no cookie.
+
 The address given to the user carries the secret as `?secret=`. The first request with it gets the cookie and is
 redirected to the same address without it. Cookies are shared by every port of a host, so each review's cookie is
 named after the review.
@@ -23,6 +26,7 @@ from starlette.websockets import WebSocketClose
 
 SECRET_HEADER = "X-Xenagos-Secret"  # noqa: S105 - a header name, not a secret
 SECRET_PARAM = "secret"  # noqa: S105 - a query parameter name, not a secret
+PUBLIC = "/visual-assets/"
 REFUSED = "Refused. Open the address that `xen` printed for this review; it carries the review's secret."
 
 
@@ -62,11 +66,16 @@ class AccessControl:
         connection = HTTPConnection(scope)
         headers = Headers(scope=scope)
         origin = headers.get("origin")
-        if headers.get("host") not in self.access.hosts or (origin is not None and origin not in self.access.origins):
+        public = scope["type"] == "http" and scope["method"] in ("GET", "HEAD") and scope["path"].startswith(PUBLIC)
+        # A sandboxed visual frame sends `Origin: null`; public files are given to it like to anyone on this machine.
+        foreign = origin is not None and origin not in self.access.origins and not public
+        if headers.get("host") not in self.access.hosts or foreign:
             await self._refuse(scope, receive, send)
             return
-        if self.access.matches(headers.get(SECRET_HEADER)) or self.access.matches(
-            connection.cookies.get(self.access.cookie)
+        if (
+            public
+            or self.access.matches(headers.get(SECRET_HEADER))
+            or self.access.matches(connection.cookies.get(self.access.cookie))
         ):
             await self.app(scope, receive, send)
             return

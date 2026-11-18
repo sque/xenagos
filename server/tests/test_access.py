@@ -112,3 +112,25 @@ def test_websocket_needs_the_cookie_and_this_origin(app: FastAPI, access: Access
         pass
     with c.websocket_connect(f"ws://{HOST}/api/echo", headers={"Origin": f"http://{HOST}"}) as ws:
         assert ws.receive_text() == "hello"
+
+
+def test_visual_assets_are_served_without_the_secret(repo: FixtureRepo, tmp_path: Path) -> None:
+    viewer = tmp_path / "viewer"
+    (viewer / "visual-assets").mkdir(parents=True)
+    (viewer / "visual-assets" / "mermaid.min.js").write_text("// library")
+    (viewer / "index.html").write_text("<html></html>")
+    target = resolve(repo.path)
+    access = Access(review_id=target.review_id, port=PORT, secret="s3cret")
+    plain = TestClient(create_app(target, access, viewer), base_url=f"http://127.0.0.1:{PORT}")
+    assert plain.get("/visual-assets/mermaid.min.js").text == "// library"
+    # As a sandboxed visual frame asks for it.
+    assert plain.get("/visual-assets/mermaid.min.js", headers={"Origin": "null"}).status_code == 200
+    assert plain.get("/visual-assets/mermaid.min.js", headers={"Host": "evil.example"}).status_code == 403
+    assert plain.get("/api/review", headers={"Origin": "null"}).status_code == 403
+    assert plain.get("/").status_code == 403
+    assert plain.get("/api/review").status_code == 403
+    assert plain.post("/visual-assets/mermaid.min.js").status_code == 403
+    page = TestClient(
+        create_app(target, access, viewer), base_url=f"http://127.0.0.1:{PORT}", headers={SECRET_HEADER: "s3cret"}
+    )
+    assert page.get("/").headers["Content-Security-Policy"] == "frame-src 'none'; frame-ancestors 'none'"

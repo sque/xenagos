@@ -3,11 +3,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { LineSelection } from '../codeview/codeView'
-import type { Position } from '../generated/types'
+import type { ElementSelection, Position } from '../generated/types'
 import { ask } from './api'
 
+/** Lines of code, or an element of a section's visual. */
+export type Selection = ({ kind: 'code' } & LineSelection) | ElementSelection
+
 export interface AskAt {
-  selection: LineSelection
+  selection: Selection
   /** Where the prompt opens: its horizontal middle and its top, in viewport coordinates. */
   x: number
   y: number
@@ -34,7 +37,7 @@ export function AskPrompt(props: {
     if (text.trim() === '' || state.sending) return
     props.onAsking()
     setState({ sending: true, error: null })
-    ask({ question: text, selection: { kind: 'code', ...selection }, position: props.position }).then(
+    ask({ question: text, selection, position: props.position }).then(
       () => {
         props.onClose(true)
       },
@@ -64,7 +67,7 @@ export function AskPrompt(props: {
         ref={inputRef}
         rows={3}
         value={text}
-        placeholder="Ask the agent about these lines"
+        placeholder={selection.kind === 'code' ? 'Ask the agent about these lines' : 'Ask the agent about this element'}
         onChange={(event) => {
           setText(event.target.value)
         }}
@@ -97,7 +100,8 @@ export function AskPrompt(props: {
   )
 }
 
-export function describe(selection: LineSelection): string {
+export function describe(selection: Selection): string {
+  if (selection.kind === 'element') return `Visual ${selection.visual}, element ${selection.element}`
   const { path, startSide, startLine, endSide, endLine } = selection
   if (startSide !== endSide) return `${path}, line ${String(startLine)} (${startSide}) to ${String(endLine)} (${endSide})`
   const lines = startLine === endLine ? `line ${String(startLine)}` : `lines ${String(startLine)}–${String(endLine)}`

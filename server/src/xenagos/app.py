@@ -55,6 +55,9 @@ class ViewerFiles(StaticFiles):
         response = await super().get_response(path, scope)
         immutable = path.startswith("assets/")
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable" if immutable else "no-cache"
+        # A visual's frame may not navigate anywhere (its content security policy cannot forbid that itself), and
+        # the viewer is not framed by other pages. Visuals are srcdoc frames, which `frame-src` does not restrict.
+        response.headers["Content-Security-Policy"] = "frame-src 'none'; frame-ancestors 'none'"
         return response
 
 

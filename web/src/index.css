@@ -110,3 +110,16 @@ button { font: inherit; color: inherit; }
 .replacepanel ul { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.3rem; }
 .replacepanel button { padding: 0.2rem 0.7rem; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: inherit; cursor: pointer; }
 .replacepanel .cwd { margin-left: 0.5rem; color: #9198a1; font: 11px ui-monospace, monospace; }
+.visualpane { flex: 0 0 40%; min-height: 0; display: flex; flex-direction: column; border-bottom: 1px solid var(--line); }
+.visualpane[data-mode="enlarged"] { flex-basis: 70%; }
+.visualpane[data-mode="collapsed"] { flex-basis: auto; }
+.visualbar { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; border-bottom: 1px solid var(--line); font-size: 0.85rem; }
+.visualbar .visualtitle { font-weight: 600; }
+.visualbar .visualhint { color: var(--muted); font-size: 0.75rem; margin-right: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.visualbar button { padding: 0.1rem 0.5rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); cursor: pointer; font-size: 0.75rem; }
+.visualbar [role="tablist"] { display: flex; gap: 0.25rem; }
+.visualbar [role="tab"][aria-selected="true"] { background: var(--panel); font-weight: 600; }
+.visualframe { flex: 1; min-height: 0; width: 100%; border: 0; background: var(--bg); }
+.visualbroken { padding: 0.75rem; }
+.visualbroken p { margin: 0 0 0.5rem; }
+.visualbroken button { padding: 0.3rem 0.8rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); cursor: pointer; }

@@ -5,7 +5,7 @@
 // scrolls to the target, spotlight on, caption opens, voice speaks. Playback pauses between steps and stops at the
 // end of the section.
 
-import type { CodeTarget, Plan, Step } from '../generated/types'
+import type { CodeTarget, Plan, Step, VisualTarget } from '../generated/types'
 import { wait } from './motion'
 import type { Voice } from './voice'
 
@@ -15,6 +15,8 @@ export interface Stage {
   showFile(path: string, signal: AbortSignal): Promise<void>
   bringIntoView(target: CodeTarget, signal: AbortSignal): Promise<void>
   spotlight(target: CodeTarget | null, form: Form): void
+  /** Spotlight an element of the section's visual, or nothing. */
+  visual(target: VisualTarget | null, form: Form): void
   caption(text: string | null, signal: AbortSignal): Promise<void>
 }
 
@@ -99,13 +101,15 @@ export class Player {
       this.set({ section, step: index, status: 'playing' })
       await this.stage.caption(null, signal)
       this.stage.spotlight(null, step.form)
+      this.stage.visual(null, step.form)
       const target = step.target
       if ('path' in target) {
         await this.stage.showFile(target.path, signal)
         await this.stage.bringIntoView(target, signal)
         this.stage.spotlight(target, step.form)
+      } else {
+        this.stage.visual(target, step.form)
       }
-      // A step on a visual element is shown by the visual (task 6.11); until then it is narrated without a mark.
       await this.stage.caption(step.narration, signal)
       await this.voice.speak(step.narration, signal)
       if (index < steps.length - 1) await wait(this.pause_ms, signal)

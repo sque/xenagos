@@ -250,6 +250,16 @@ element) messages, and receives `spotlight` (mark an element). The frame is serv
 connections, since the sandbox alone does not stop requests. Mermaid is available inside the frame as a bundled
 helper; nothing requires it.
 
+As built: the frame is an `srcdoc` iframe with `sandbox="allow-scripts"`. Its document starts with a content
+security policy that allows inline scripts and the viewer's `/visual-assets/` only, and no connections; the viewer
+page's own policy (`frame-src 'none'`) stops a visual from navigating its frame anywhere, which the frame's policy
+cannot do. A helper inside the frame finds declared elements by id, `data-element`, or Mermaid node, posts `link` on
+click (when the element is linked) and `select` on Shift+click or for unlinked elements, draws `spotlight` marks,
+and reports `ready` or `error`. The viewer accepts messages only from that frame and only for declared elements; any
+other field, text included, is dropped. No `ready` within eight seconds, or an error, replaces the visual with a
+notice and a repair request. Mermaid 12.3.0's standalone bundle (5.5 MB) is served at `/visual-assets/` without the
+secret, since the opaque frame sends no cookie and `Origin: null`; only library files are there.
+
 ### 8. File categories
 
 Order of rules: reviewer override for this review; `linguist-generated` in `.gitattributes`; known lock file names;

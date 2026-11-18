@@ -39,6 +39,9 @@ function harness() {
     spotlight: (t, form) => {
       log.push(t === null ? 'spot off' : `spot ${form} ${String(t.startLine)}`)
     },
+    visual: (t, form) => {
+      if (t !== null) log.push(`visual ${form} ${t.visual}#${t.element}`)
+    },
     caption: (text) => {
       log.push(text === null ? 'caption close' : `caption ${text}`)
       return Promise.resolve()
@@ -79,7 +82,7 @@ describe('player', () => {
     expect(log).toEqual([
       'caption close', 'spot off', 'file a.py', 'scroll 1', 'spot lines 1', 'caption first', 'speak first',
       'caption close', 'spot off', 'file b.py', 'scroll 9', 'spot box 9', 'caption second', 'speak second',
-      'caption close', 'spot off', 'caption third', 'speak third',
+      'caption close', 'spot off', 'visual circle v#x', 'caption third', 'speak third',
     ])
     expect(states.at(-1)).toEqual({ section: 0, step: 2, status: 'ended' })
   })

@@ -1,14 +1,13 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
-import type { LineSelection } from '../codeview/codeView'
-import { AskPrompt, describe as describeSelection } from './AskPrompt'
+import { AskPrompt, describe as describeSelection, type Selection } from './AskPrompt'
 
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
 })
 
-const selection: LineSelection = { path: 'app.py', startSide: 'head', startLine: 40, endSide: 'head', endLine: 52 }
+const selection: Selection = { kind: 'code', path: 'app.py', startSide: 'head', startLine: 40, endSide: 'head', endLine: 52 }
 
 function prompt(onClose = vi.fn(), onAsking = vi.fn()) {
   render(
@@ -23,6 +22,7 @@ test('names the selection', () => {
     'app.py, line 40 (before the change)',
   )
   expect(describeSelection({ ...selection, startSide: 'base' })).toBe('app.py, line 40 (base) to 52 (head)')
+  expect(describeSelection({ kind: 'element', visual: 'flow', element: 'retry' })).toBe('Visual flow, element retry')
 })
 
 test('sends the question with its selection and position on Enter', async () => {
@@ -39,7 +39,7 @@ test('sends the question with its selection and position on Enter', async () => 
   expect(url).toBe('/api/agent/ask')
   expect(JSON.parse(init.body as string)).toEqual({
     question: 'why is this guard needed?',
-    selection: { kind: 'code', ...selection },
+    selection,
     position: { section: 3, step: 2 },
   })
 })

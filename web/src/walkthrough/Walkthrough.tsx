@@ -3,8 +3,9 @@ import { AskPrompt, type AskAt } from '../agent/AskPrompt'
 import { AskWalkthrough } from '../agent/AskWalkthrough'
 import { CodeView, type FileSides, type Tick } from '../codeview/codeView'
 import { Overlay } from '../codeview/overlay'
-import type { Plan, Show } from '../generated/types'
+import type { CodeTarget, Plan, Show } from '../generated/types'
 import { fetchFile } from '../review'
+import { type SectionSpot, VisualPane } from '../visual/VisualPane'
 import { Icon, type IconName } from './icons'
 import { Player, type PlayerState } from './player'
 import { CodeStage } from './stage'
@@ -29,6 +30,7 @@ export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: P
   const [ticks, setTicks] = useState<Tick[]>([])
   const [voiceOn, setVoiceOn] = useState(BrowserVoice.available())
   const [askAt, setAskAt] = useState<AskAt | null>(null)
+  const [visualSpot, setVisualSpot] = useState<SectionSpot | null>(null)
 
   useEffect(() => {
     const scroller = scrollerRef.current
@@ -43,6 +45,9 @@ export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: P
       setFile(shown)
       setTicks(view.ticks())
     })
+    stage.onVisual = (target, form) => {
+      setVisualSpot(target === null ? null : { visual: target.visual, element: target.element, form })
+    }
     const player = new Player(plan, stage, silentVoice, setState)
     engine.current = { player, stage, view }
     const resize = new ResizeObserver(() => {
@@ -57,7 +62,11 @@ export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: P
       const code = scroller.getBoundingClientRect()
       // Asking pauses playback at the step the reviewer is on, before they start typing (spec: agent-link).
       player.pause()
-      setAskAt({ selection, x: code.left + Math.min(code.width / 2, 220), y: row ? bounds.bottom : bounds.top + 80 })
+      setAskAt({
+        selection: { kind: 'code', ...selection },
+        x: code.left + Math.min(code.width / 2, 220),
+        y: row ? bounds.bottom : bounds.top + 80,
+      })
     }
     const first = plan.sections[0].steps[0].target
     if ('path' in first) {
@@ -75,14 +84,16 @@ export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: P
     engine.current?.player.setVoice(voiceOn ? new BrowserVoice() : silentVoice)
   }, [voiceOn])
 
-  // The agent points at code while it answers: playback pauses and the target is shown without a caption.
-  useEffect(() => {
+  // Showing code out of turn (the agent's `xen show`, a visual's link): playback pauses and the target is shown
+  // without a caption. A newer request replaces an unfinished one.
+  const pointer = useRef<AbortController | null>(null)
+  const pointAt = (target: CodeTarget, form: 'lines' | 'box' | 'circle') => {
     const current = engine.current
-    if (pointing === null || current === null || !('path' in pointing.target)) return
-    const target = pointing.target
-    const form = pointing.form ?? 'lines'
+    if (current === null) return
     current.player.pause()
+    pointer.current?.abort(new DOMException('replaced', 'AbortError'))
     const controller = new AbortController()
+    pointer.current = controller
     const point = async () => {
       await current.stage.caption(null, controller.signal)
       current.stage.spotlight(null, form)
@@ -93,9 +104,23 @@ export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: P
     point().catch((error: unknown) => {
       if (!(error instanceof DOMException && error.name === 'AbortError')) throw error
     })
-    return () => {
-      controller.abort(new DOMException('replaced', 'AbortError'))
+  }
+  const pointAtRef = useRef<(show: Show) => void>(() => undefined)
+  useEffect(() => {
+    pointAtRef.current = (show: Show) => {
+      const form = show.form ?? 'lines'
+      const target = show.target
+      if ('path' in target) {
+        pointAt(target, form)
+        return
+      }
+      engine.current?.player.pause()
+      setVisualSpot({ visual: target.visual, element: target.element, form })
     }
+  })
+
+  useEffect(() => {
+    if (pointing !== null) pointAtRef.current(pointing)
   }, [pointing])
 
   const player = () => engine.current?.player
@@ -169,18 +194,37 @@ export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: P
             />
           </div>
         </div>
+        {section?.visuals !== undefined && section.visuals.length > 0 && (
+          <VisualPane
+            key={state.section}
+            visuals={section.visuals}
+            spot={visualSpot}
+            onLink={(visual, element) => {
+              const link = visual.elements?.find((e) => e.id === element)?.link
+              if (link != null) pointAt(link, 'lines')
+            }}
+            onSelect={(visual, element, box) => {
+              engine.current?.player.pause()
+              setAskAt({
+                selection: { kind: 'element', visual: visual.id, element },
+                x: (box.left + box.right) / 2,
+                y: box.bottom,
+              })
+            }}
+          />
+        )}
         <div className="filebar">{file?.path ?? ' '}</div>
         {askAt !== null && (
           <AskPrompt
-            key={`${askAt.selection.path}:${String(askAt.selection.startLine)}:${String(askAt.selection.endLine)}`}
+            key={JSON.stringify(askAt.selection)}
             at={askAt}
             position={{ section: state.section + 1, step: state.step + 1 }}
             onAsking={() => {
               engine.current?.player.pause()
             }}
             onClose={() => {
+              if (askAt.selection.kind === 'code') engine.current?.view.clearSelection()
               setAskAt(null)
-              engine.current?.view.clearSelection()
             }}
           />
         )}

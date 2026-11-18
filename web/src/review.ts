@@ -1,5 +1,5 @@
 import type { FileSides } from './codeview/codeView'
-import type { ChangedFile, FileView, Plan, ReviewInfo } from './generated/types'
+import type { ChangedFile, CommitInfo, FileView, Plan, ReviewInfo } from './generated/types'
 
 export type { ReviewInfo }
 
@@ -21,12 +21,30 @@ export async function fetchPlan(): Promise<Plan | null> {
   return (await response.json()) as Plan
 }
 
-export async function fetchFile(path: string): Promise<FileSides> {
-  const file = (await getJson(`/api/file?path=${encodeURIComponent(path)}`)) as FileView
+/** A file at both pinned revisions, or before and after one commit of the review. */
+export async function fetchFile(path: string, commit: string | null = null): Promise<FileSides> {
+  const query = commit === null ? '' : `&commit=${encodeURIComponent(commit)}`
+  const file = (await getJson(`/api/file?path=${encodeURIComponent(path)}${query}`)) as FileView
   return { path: file.path, oldPath: file.oldPath, base: file.base, head: file.head }
 }
 
-/** Every file the change touches, with its hunks. */
-export async function fetchChanges(): Promise<ChangedFile[]> {
-  return (await getJson('/api/changes')) as ChangedFile[]
+/** Every file the change, or one of its commits, touches, with its hunks, line counts and category. */
+export async function fetchChanges(commit: string | null = null): Promise<ChangedFile[]> {
+  return (await getJson(commit === null ? '/api/changes' : `/api/changes?commit=${encodeURIComponent(commit)}`)) as ChangedFile[]
 }
+
+export async function fetchCommits(): Promise<CommitInfo[]> {
+  return (await getJson('/api/commits')) as CommitInfo[]
+}
+
+/** Move a changed file to another category for this review; null puts it back where the rules place it. */
+export async function setCategory(path: string, category: Category | null): Promise<void> {
+  const response = await fetch('/api/categories', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, category }),
+  })
+  if (!response.ok) throw new Error(`the review server answered ${String(response.status)}`)
+}
+
+export type Category = ChangedFile['category']

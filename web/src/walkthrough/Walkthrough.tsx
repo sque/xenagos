@@ -24,6 +24,12 @@ interface Engine {
 /** Something the agent pointed at with `xen show`; `seq` tells two equal requests apart. */
 export type Pointing = Show & { seq: number }
 
+/** A place in the walkthrough, counted from 0. */
+export interface Position {
+  section: number
+  step: number
+}
+
 /** A file the reviewer chose in the explorer. */
 export interface Opening {
   path: string
@@ -43,13 +49,21 @@ export function Walkthrough(props: {
   /** Where the outline is drawn: the top of the right column (design decision 5b). */
   outlineSlot: HTMLElement | null
   onFile: (path: string) => void
+  /** Where to stand when the walkthrough opens, as it was left; the start of the plan when null. */
+  start?: Position | null
+  /** Told where the walkthrough is, so it can be opened there again. */
+  onPosition?: (position: Position) => void
 }) {
   const { plan, pointing, opening, style } = props
   const scrollerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const engine = useRef<Engine | null>(null)
-  const [state, setState] = useState<PlayerState>({ section: 0, step: 0, status: 'idle' })
+  const [initial] = useState(() => {
+    const at = props.start
+    return at != null && plan.sections[at.section]?.steps[at.step] !== undefined ? at : { section: 0, step: 0 }
+  })
+  const [state, setState] = useState<PlayerState>({ ...initial, status: 'idle' })
   const [file, setFile] = useState<FileSides | null>(null)
   const [ticks, setTicks] = useState<Tick[]>([])
   const [voiceOn, setVoiceOn] = useState(props.voice.enabled && voiceAvailable(props.voice.provider))
@@ -65,9 +79,11 @@ export function Walkthrough(props: {
   const [changes, setChanges] = useState<ChangedFile[] | null>(null)
   const [explained, setExplained] = useState(false)
   const voiceRef = useRef<Voice>(silentVoice)
+  const onPositionRef = useRef(props.onPosition)
   const onFileRef = useRef(props.onFile)
   useEffect(() => {
     onFileRef.current = props.onFile
+    onPositionRef.current = props.onPosition
   })
 
   useEffect(() => {
@@ -89,6 +105,7 @@ export function Walkthrough(props: {
     }
     const player = new Player(plan, stage, silentVoice, (next) => {
       setState(next)
+      onPositionRef.current?.({ section: next.section, step: next.step })
       if (next.status === 'ended') setDone((previous) => new Set(previous).add(next.section))
     })
     engine.current = { player, stage, view }
@@ -124,7 +141,9 @@ export function Walkthrough(props: {
         y: row ? bounds.bottom : bounds.top + 80,
       })
     }
-    const first = plan.sections[0].steps[0].target
+    const where = plan.sections[initial.section]?.steps[initial.step] === undefined ? { section: 0, step: 0 } : initial
+    player.moveTo(where.section, where.step)
+    const first = plan.sections[where.section]?.steps[where.step]?.target ?? plan.sections[0].steps[0].target
     if ('path' in first) {
       void stage.showFile(first.path, new AbortController().signal)
     }
@@ -138,7 +157,7 @@ export function Walkthrough(props: {
       view.destroy()
       engine.current = null
     }
-  }, [plan])
+  }, [plan, initial])
 
   // Voice off, or not yet disclosed when it sends text off the machine: captions at reading pace.
   const voice: Voice = useMemo(

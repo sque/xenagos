@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AgentPane } from './agent/AgentPane'
 import { type AgentStatus, fetchAgent } from './agent/api'
 import { AskWalkthrough } from './agent/AskWalkthrough'
+import { Browse } from './browse/Browse'
 import { listen } from './agent/events'
 import type { Coverage, Plan, RepositoryTree } from './generated/types'
 import { Explorer, fetchTree } from './layout/Explorer'
@@ -9,7 +10,7 @@ import { Layout } from './layout/Layout'
 import { fetchPlan, fetchReview, type ReviewInfo } from './review'
 import { TargetNotice } from './TargetNotice'
 import { fetchCoverage } from './walkthrough/NotCovered'
-import { type Opening, type Pointing, Walkthrough } from './walkthrough/Walkthrough'
+import { type Opening, type Pointing, type Position, Walkthrough } from './walkthrough/Walkthrough'
 
 type Load =
   | { state: 'loading' }
@@ -17,6 +18,13 @@ type Load =
   | { state: 'failed'; message: string }
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
+
+type Mode = 'browse' | 'walkthrough'
+
+/** The mode named in the address (#browse, #walkthrough), so a reload keeps it. */
+function modeInAddress(): Mode | null {
+  return location.hash === '#browse' ? 'browse' : location.hash === '#walkthrough' ? 'walkthrough' : null
+}
 
 export function App() {
   const [load, setLoad] = useState<Load>({ state: 'loading' })
@@ -28,6 +36,16 @@ export function App() {
   const [explorerOpen, setExplorerOpen] = useState(false)
   const [covered, setCovered] = useState<{ plan: Plan; coverage: Coverage | null } | null>(null)
   const [tree, setTree] = useState<{ tree: RepositoryTree | null; error: string | null }>({ tree: null, error: null })
+  // Browse mode unless the review already has a walkthrough when it opens (spec: review-session); chosen at load.
+  const [mode, setModeState] = useState<Mode>(modeInAddress() ?? 'browse')
+  const [explorerSlot, setExplorerSlot] = useState<HTMLElement | null>(null)
+  const [categoriesSeq, setCategoriesSeq] = useState(0)
+  // Where the walkthrough was when the reviewer switched to browsing, to come back to it.
+  const [position, setPosition] = useState<Position | null>(null)
+  const setMode = useCallback((next: Mode) => {
+    setModeState(next)
+    history.replaceState(null, '', `#${next}`)
+  }, [])
 
   const refreshAgent = useCallback(() => {
     fetchAgent().then(setAgent, (error: unknown) => {
@@ -39,7 +57,9 @@ export function App() {
     let live = true
     Promise.all([fetchReview(), fetchPlan()]).then(
       ([review, plan]) => {
-        if (live) setLoad({ state: 'ready', review, plan })
+        if (!live) return
+        setLoad({ state: 'ready', review, plan })
+        if (modeInAddress() === null) setModeState(plan !== null ? 'walkthrough' : 'browse')
       },
       (error: unknown) => {
         if (live) setLoad({ state: 'failed', message: message(error) })
@@ -59,7 +79,12 @@ export function App() {
       (event) => {
         if (event.type === 'plan') refreshPlan()
         else if (event.type === 'agent') refreshAgent()
-        else setPointing({ target: event.target, form: event.form, seq: ++seq })
+        else if (event.type === 'categories') setCategoriesSeq((n) => n + 1)
+        else {
+          // The agent points at code: the walkthrough's code view shows it, so a browsing reviewer is taken there.
+          setPointing({ target: event.target, form: event.form, seq: ++seq })
+          setModeState((current) => (current === 'browse' ? 'walkthrough' : current))
+        }
       },
       () => {
         refreshAgent()
@@ -114,11 +139,27 @@ export function App() {
         </button>
         <h1>xenagos</h1>
         {load.state === 'ready' && <ReviewHeader review={load.review} />}
+        <div className="modeswitch" role="group" aria-label="Mode">
+          {(['browse', 'walkthrough'] as const).map((each) => (
+            <button
+              key={each}
+              type="button"
+              aria-pressed={mode === each}
+              onClick={() => {
+                setMode(each)
+              }}
+            >
+              {each === 'browse' ? 'Browse' : 'Walkthrough'}
+            </button>
+          ))}
+        </div>
       </header>
       {load.state === 'ready' && <TargetNotice head={load.review.head} />}
       <Layout
         explorerOpen={explorerOpen}
+        explorerInto={setExplorerSlot}
         explorer={
+          mode === 'browse' ? null : (
           <Explorer
             tree={tree.tree}
             error={tree.error}
@@ -132,6 +173,7 @@ export function App() {
                   }
             }
           />
+          )
         }
         middle={
           <>
@@ -141,8 +183,17 @@ export function App() {
                 Could not load the review: {load.message}
               </p>
             )}
-            {load.state === 'ready' && plan === null && <NoWalkthrough style={load.review.style} />}
-            {load.state === 'ready' && plan !== null && (
+            {load.state === 'ready' && mode === 'browse' && (
+              <Browse
+                explorerSlot={explorerSlot}
+                categoriesSeq={categoriesSeq}
+                onChosen={() => {
+                  setExplorerOpen(false)
+                }}
+              />
+            )}
+            {load.state === 'ready' && mode === 'walkthrough' && plan === null && <NoWalkthrough style={load.review.style} />}
+            {load.state === 'ready' && mode === 'walkthrough' && plan !== null && (
               <Walkthrough
                 plan={plan}
                 pointing={pointing}
@@ -153,14 +204,54 @@ export function App() {
                 voice={load.review.voice}
                 outlineSlot={outlineSlot}
                 onFile={setCurrentFile}
+                start={position}
+                onPosition={setPosition}
               />
             )}
           </>
         }
         outlineInto={setOutlineSlot}
-        outline={plan === null ? <p className="notice">The outline of the walkthrough appears here.</p> : null}
+        outline={
+          mode === 'browse' && load.state === 'ready' ? (
+            <BrowsePanel
+              plan={plan}
+              style={load.review.style}
+              onOpen={() => {
+                setMode('walkthrough')
+              }}
+            />
+          ) : plan === null ? (
+            <p className="notice">The outline of the walkthrough appears here.</p>
+          ) : null
+        }
         agent={<AgentPane status={agent} onEnded={refreshAgent} onStatus={setAgent} />}
       />
+    </div>
+  )
+}
+
+/** The right column's top in browse mode: the way to the walkthrough, or to asking for one. */
+function BrowsePanel({ plan, style, onOpen }: { plan: Plan | null; style: string; onOpen: () => void }) {
+  if (plan === null) {
+    return (
+      <div className="browsepanel">
+        <h2 className="columnhead">Walkthrough</h2>
+        <p>No walkthrough yet. Browsing never starts an agent; asking for one does.</p>
+        <AskWalkthrough again={false} style={style} />
+      </div>
+    )
+  }
+  const steps = plan.sections.reduce((sum, section) => sum + section.steps.length, 0)
+  return (
+    <div className="browsepanel">
+      <h2 className="columnhead">Walkthrough</h2>
+      <p>
+        This review has a walkthrough: {plan.sections.length} section{plan.sections.length === 1 ? '' : 's'}, {steps}{' '}
+        step{steps === 1 ? '' : 's'}.
+      </p>
+      <button type="button" className="primary" onClick={onOpen}>
+        Open the walkthrough
+      </button>
     </div>
   )
 }

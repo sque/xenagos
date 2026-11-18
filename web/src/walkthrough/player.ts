@@ -62,6 +62,13 @@ export class Player {
     })
   }
 
+  /** Stand at a step without playing it, as when the walkthrough is opened again where it was left. */
+  moveTo(section: number, step: number): void {
+    if (this.plan.sections[section]?.steps[step] === undefined) return
+    this.controller?.abort(new DOMException('moved', 'AbortError'))
+    this.set({ section, step, status: 'idle' })
+  }
+
   pause(): void {
     if (this.state.status !== 'playing') return
     this.controller?.abort(new DOMException('paused', 'AbortError'))

@@ -54,6 +54,7 @@ const routes: Record<string, unknown> = {
 }
 
 beforeEach(() => {
+  history.replaceState(null, '', location.pathname)
   FakeSocket.all = []
   vi.stubGlobal('WebSocket', FakeSocket)
   vi.stubGlobal(
@@ -238,4 +239,23 @@ test('stepping back while the next file fades in leaves the shown file visible',
   })
   expect(filePath()).toBe('a.py')
   expect(document.querySelector<HTMLElement>('.codepanel')?.style.opacity).toBe('1')
+})
+
+test('after browsing, the walkthrough opens again at the step it was on', async () => {
+  await open()
+  fireEvent.click(within(outline()).getByText('Collecting stays as it was.'))
+  await vi.waitFor(() => {
+    expect(position()).toBe('Section 1 of 2 · Step 3 of 3')
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Browse' }))
+  await vi.waitFor(() => {
+    expect(document.querySelector('.stagebar')).toBeNull()
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Walkthrough' }))
+  await vi.waitFor(() => {
+    expect(position()).toBe('Section 1 of 2 · Step 3 of 3')
+    expect(filePath()).toBe('a.py')
+  })
+  expect(states()).toEqual(['done', 'done', 'upcoming'])
+  expect(document.querySelector('.transport .icon.primary')?.getAttribute('aria-label')).toBe('Play')
 })

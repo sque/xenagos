@@ -16,6 +16,7 @@ vi.mock('./agent/terminal', () => ({
 }))
 
 beforeEach(() => {
+  history.replaceState(null, '', location.pathname)
   FakeSocket.all = []
   vi.stubGlobal('WebSocket', FakeSocket)
 })
@@ -36,7 +37,11 @@ const review = {
   voice: { enabled: false, provider: 'browser', name: null, speed: 1 },
 }
 
-function serve(routes: Record<string, Response>) {
+const json = (body: unknown) => new Response(JSON.stringify(body))
+
+function serve(given: Record<string, Response>) {
+  // Browse mode, where a review without a walkthrough opens, lists the changed files and commits.
+  const routes: Record<string, Response> = { '/api/changes': json([]), '/api/commits': json([]), ...given }
   const fetch = vi.fn((url: string, init?: RequestInit) => {
     const key = init?.method === undefined || init.method === 'GET' ? url : `${init.method} ${url}`
     return Promise.resolve(routes[key]?.clone() ?? new Response('', { status: 404 }))
@@ -45,7 +50,6 @@ function serve(routes: Record<string, Response>) {
   return fetch
 }
 
-const json = (body: unknown) => new Response(JSON.stringify(body))
 
 test('shows the target and both pinned commit ids', async () => {
   serve({ '/api/review': new Response(JSON.stringify(review)) })
@@ -55,9 +59,12 @@ test('shows the target and both pinned commit ids', async () => {
   expect(screen.getByTitle(review.head).textContent).toBe('2222222222')
 })
 
-test('says when the review has no walkthrough yet', async () => {
+test('opens in browse mode without a walkthrough, and walkthrough mode says there is none', async () => {
   serve({ '/api/review': new Response(JSON.stringify(review)) })
   render(<App />)
+  expect(await screen.findByText(/No walkthrough yet/)).toBeDefined()
+  expect(screen.getByRole('button', { name: 'Browse' }).getAttribute('aria-pressed')).toBe('true')
+  fireEvent.click(screen.getByRole('button', { name: 'Walkthrough' }))
   expect(await screen.findByText('This review has no walkthrough yet.')).toBeDefined()
 })
 
@@ -97,7 +104,7 @@ test('asks the agent for a walkthrough', async () => {
 test('fetches the plan and the agent again when the server says they changed', async () => {
   const fetch = serve({ '/api/review': json(review), '/api/agent': json({ state: 'none' }) })
   render(<App />)
-  await screen.findByText('This review has no walkthrough yet.')
+  await screen.findByText(/No walkthrough yet/)
   const count = (url: string) => fetch.mock.calls.filter(([u]) => u === url).length
   const [socket] = FakeSocket.all
   expect(socket?.url).toMatch(/^ws:.*\/api\/events$/)

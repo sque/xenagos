@@ -223,3 +223,42 @@ button { font: inherit; color: inherit; }
 /* What changed around the pinned review (spec: review-target). */
 .targetnotice { padding: 0.3rem 1rem; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--tick-modified) 12%, var(--bg)); font-size: 0.85rem; }
 .targetnotice p { margin: 0.1rem 0; }
+/* Mode switch (mockup browse-mode). */
+.modeswitch { display: inline-flex; margin-left: auto; padding: 2px; border-radius: 8px; background: color-mix(in srgb, var(--line) 50%, transparent); }
+.modeswitch button { padding: 0.2rem 0.8rem; border: 0; border-radius: 6px; background: none; color: var(--muted); font: inherit; cursor: pointer; }
+.modeswitch button[aria-pressed="true"] { background: var(--bg); color: var(--fg); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
+/* Browse mode (spec: diff-browser; mockup browse-mode). */
+.browse { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.browse .codepanel .scroller { inset: 0; }
+.browsefiles { display: flex; flex-direction: column; min-height: 100%; }
+.browsefiles .showing { display: flex; flex-direction: column; gap: 0.25rem; margin: 0 0.5rem 0.75rem; font-size: 0.8rem; color: var(--muted); }
+.browsefiles .showing select { padding: 0.3rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: inherit; font-size: 0.85rem; }
+.browsefiles .category { margin-bottom: 0.6rem; border-radius: 6px; }
+.browsefiles .category[data-drop] { outline: 2px dashed var(--accent); outline-offset: -2px; }
+.browsefiles .category h3 { display: flex; justify-content: space-between; margin: 0.2rem 0.5rem 0.2rem; font-size: 0.85rem; }
+.browsefiles .count, .tree .lines { font-weight: 400; color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tree .note + .lines { margin-left: 0.4rem; }
+.tree .name + .lines { margin-left: auto; }
+.browsefiles .treehint { margin: auto 0.6rem 0.2rem; padding-top: 0.6rem; color: var(--muted); font-size: 0.75rem; }
+.commitbanner { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--line); background: var(--panel); font-size: 0.85rem; }
+.commitbanner p { margin: 0.1rem 0; }
+.commitbanner .subject { font-weight: 600; }
+.commitbanner .body { white-space: pre-wrap; color: var(--fg); }
+.commitbanner .byline { color: var(--muted); font-size: 0.75rem; }
+.filepanel { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.filehead { display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.75rem; border-bottom: 1px solid var(--line); font-size: 0.85rem; white-space: nowrap; }
+.filehead .filepath { font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; }
+.filehead .filelabel { padding: 0 0.4rem; border-radius: 999px; font-size: 0.72rem; background: var(--panel); color: var(--muted); border: 1px solid var(--line); }
+.filehead .filelabel.added { color: var(--tick-added); }
+.filehead .filelabel.deleted { color: var(--tick-deleted); }
+.filehead .filelabel.renamed { color: var(--tick-modified); }
+.filehead .filecounts { color: var(--muted); font-variant-numeric: tabular-nums; }
+.filehead .category { padding: 0.05rem 0.2rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--muted); font: inherit; font-size: 0.8rem; }
+.filehead .spacer { flex: 1; }
+.filehead .viewswitch button { font-size: 0.8rem; }
+.plain { padding: 0.15rem 0.6rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: inherit; font-size: 0.8rem; cursor: pointer; }
+.plain:disabled { opacity: 0.5; cursor: default; }
+.collapsedfile button { padding: 0.3rem 0.8rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--fg); cursor: pointer; }
+.browsepanel { font-size: 0.9rem; }
+.browsepanel p { margin: 0 0 0.6rem; }
+button.primary { padding: 0.45rem 1rem; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }

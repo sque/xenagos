@@ -63,6 +63,7 @@ const routes: Record<string, unknown> = {
 }
 
 beforeEach(() => {
+  history.replaceState(null, '', location.pathname)
   FakeSocket.all = []
   vi.stubGlobal('WebSocket', FakeSocket)
   vi.stubGlobal(

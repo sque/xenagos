@@ -45,8 +45,9 @@ export interface Tick {
   kind: 'added' | 'deleted' | 'modified'
 }
 
-// A deleted line sits between head lines in the whole-file view; its old number would read as a head number.
-const VIEW_CSS = `
+// A deleted line sits between head lines in the whole-file view; its old number would read as a head number. With
+// unchanged lines collapsed (browse mode) the numbers stay, as a diff reader expects.
+const WHOLE_FILE_CSS = `
 [data-gutter] [data-line-type="change-deletion"] [data-line-number-content] { visibility: hidden; }
 ${OVERLAY_CSS}
 `
@@ -91,7 +92,7 @@ export class CodeView {
       disableFileHeader: true,
       enableLineSelection: true,
       themeType: 'system' as const,
-      unsafeCSS: VIEW_CSS,
+      unsafeCSS: expandAll ? WHOLE_FILE_CSS : OVERLAY_CSS,
       onLineSelectionEnd: (range: SelectedLineRange | null) => {
         this.onSelect(range === null ? null : selection(file, range))
       },

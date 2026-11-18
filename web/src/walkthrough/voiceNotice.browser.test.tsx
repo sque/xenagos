@@ -40,6 +40,7 @@ const review = (offMachine: boolean) => ({
 let current = review(true)
 
 beforeEach(() => {
+  history.replaceState(null, '', location.pathname)
   FakeSocket.all = []
   vi.stubGlobal('WebSocket', FakeSocket)
   localStorage.clear()

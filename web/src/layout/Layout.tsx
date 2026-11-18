@@ -19,6 +19,8 @@ function savedSplit(): number {
 
 export function Layout(props: {
   explorer: ReactNode
+  /** Receives the left column's element, for a mode that draws into it itself. */
+  explorerInto?: (element: HTMLElement | null) => void
   middle: ReactNode
   /** Receives the element the outline is drawn into (the walkthrough renders it there). */
   outlineInto: (element: HTMLElement | null) => void
@@ -26,7 +28,7 @@ export function Layout(props: {
   agent: ReactNode
   explorerOpen: boolean
 }) {
-  const { explorer, middle, outlineInto, outline, agent, explorerOpen } = props
+  const { explorer, explorerInto, middle, outlineInto, outline, agent, explorerOpen } = props
   const rightRef = useRef<HTMLDivElement>(null)
   const [split, setSplit] = useState(savedSplit)
 
@@ -42,7 +44,7 @@ export function Layout(props: {
 
   return (
     <div className="layout" data-explorer={explorerOpen ? 'open' : 'closed'}>
-      <aside className="explorer" aria-label="Repository">
+      <aside className="explorer" aria-label="Files" ref={explorerInto}>
         {explorer}
       </aside>
       <div className="middle">{middle}</div>

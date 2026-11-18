@@ -35,6 +35,7 @@ const review = {
 }
 
 beforeEach(() => {
+  history.replaceState(null, '', location.pathname)
   FakeSocket.all = []
   vi.stubGlobal('WebSocket', FakeSocket)
   const routes: Record<string, () => Response> = {

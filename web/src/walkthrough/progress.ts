@@ -36,7 +36,8 @@ export interface Progress {
 /** Done, current or upcoming, for a step of the section on screen. */
 export function stepState(index: number, progress: Progress, sectionDone: boolean): StepState {
   if (progress.status === 'ended' || (progress.status === 'idle' && sectionDone)) return 'done'
-  if (progress.status === 'idle') return 'upcoming'
+  // Idle: not started, or opened again where the reviewer left it.
+  if (progress.status === 'idle') return index < progress.step ? 'done' : 'upcoming'
   return index < progress.step ? 'done' : index === progress.step ? 'current' : 'upcoming'
 }
 

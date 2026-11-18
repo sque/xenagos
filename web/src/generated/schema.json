@@ -141,6 +141,36 @@
       "title": "BranchMoved",
       "type": "object"
     },
+    "CategoryChange": {
+      "additionalProperties": false,
+      "description": "Put a changed file in another category for this review; null puts it back where the rules place it.",
+      "properties": {
+        "category": {
+          "anyOf": [
+            {
+              "enum": [
+                "code",
+                "tests",
+                "generated"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "category"
+      ],
+      "title": "CategoryChange",
+      "type": "object"
+    },
     "CategoryCoverage": {
       "additionalProperties": false,
       "properties": {
@@ -246,8 +276,20 @@
       "additionalProperties": false,
       "description": "A file the change touches, as the diff of the pinned revisions has it.",
       "properties": {
+        "added": {
+          "description": "Lines added; 0 for a binary file.",
+          "type": "integer"
+        },
         "binary": {
           "type": "boolean"
+        },
+        "category": {
+          "enum": [
+            "code",
+            "tests",
+            "generated"
+          ],
+          "type": "string"
         },
         "hunks": {
           "items": {
@@ -269,6 +311,10 @@
           "description": "Head path, or base path for a deleted file.",
           "type": "string"
         },
+        "removed": {
+          "description": "Lines removed; 0 for a binary file.",
+          "type": "integer"
+        },
         "status": {
           "enum": [
             "added",
@@ -286,7 +332,10 @@
         "oldPath",
         "status",
         "binary",
-        "hunks"
+        "hunks",
+        "added",
+        "removed",
+        "category"
       ],
       "title": "ChangedFile",
       "type": "object"
@@ -404,6 +453,37 @@
         "endLine"
       ],
       "title": "CodeTarget",
+      "type": "object"
+    },
+    "CommitInfo": {
+      "additionalProperties": false,
+      "description": "A commit of the review, for the per-commit view (spec: diff-browser).",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "date": {
+          "description": "Author date, ISO 8601.",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "subject",
+        "message",
+        "author",
+        "date"
+      ],
+      "title": "CommitInfo",
       "type": "object"
     },
     "Coverage": {

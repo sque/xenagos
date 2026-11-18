@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from xenagos import anchors, narration
 from xenagos.api import Show, StepAddition, VisualAddition
 from xenagos.categories import Category, categorize
+from xenagos.commits import Commit, commits
 from xenagos.config import ConfigError, Limits, Style
 from xenagos.diff import FileChange, changes
 from xenagos.files import RevisionFiles
@@ -39,9 +40,13 @@ class Review:
     """The active narration style, read on each submission; None checks plain text only."""
     plan: Plan | None = None
     files: RevisionFiles = field(init=False)
+    overrides: dict[str, Category] = field(init=False)
+    """The reviewer's category corrections, by path."""
+    _commit_changes: dict[str, tuple[list[FileChange], dict[str, Category]]] = field(init=False, default_factory=dict)
 
     def __post_init__(self) -> None:
         self.files = RevisionFiles(self.target.repo)
+        self.overrides = self.store.load_categories() if self.store is not None else {}
         if self.plan is None and self.store is not None:
             self.plan = self.store.load_plan()
 
@@ -54,9 +59,45 @@ class Review:
         return head_files(self.target.repo, self.target.head)
 
     @cached_property
-    def categories(self) -> dict[str, Category]:
-        """The category of each changed file, by its head path (base path when deleted)."""
+    def _rule_categories(self) -> dict[str, Category]:
         return categorize(self.target.repo, self.target.head, [c.path for c in self.changes])
+
+    @property
+    def categories(self) -> dict[str, Category]:
+        """The category of each changed file, by its head path (base path when deleted), the reviewer's corrections
+        first (design decision 8)."""
+        return {**self._rule_categories, **{p: c for p, c in self.overrides.items() if p in self._rule_categories}}
+
+    @cached_property
+    def commits(self) -> list[Commit]:
+        return commits(self.target.repo, self.target.base, self.target.head)
+
+    def commit(self, commit_id: str) -> Commit | None:
+        return next((c for c in self.commits if c.id == commit_id), None)
+
+    def commit_changes(self, commit: Commit) -> tuple[list[FileChange], dict[str, Category]]:
+        """What one commit of the review changed, against its first parent, and the categories of those files."""
+        if commit.id not in self._commit_changes:
+            found = changes(self.target.repo, commit.parent, commit.id)
+            rules = categorize(self.target.repo, commit.id, [c.path for c in found])
+            self._commit_changes[commit.id] = (found, rules)
+        found, rules = self._commit_changes[commit.id]
+        return found, {**rules, **{p: c for p, c in self.overrides.items() if p in rules}}
+
+    def set_category(self, path: str, category: Category | None) -> dict[str, Category]:
+        """Put a changed file in another category for this review, or back to its rule's (None)."""
+        known = set(self._rule_categories) | {p for c in self.commits for p in self.commit_changes(c)[1]}
+        if path not in known:
+            raise PlanRejected([f"{path} is not a file this review changes"])
+        overrides = dict(self.overrides)
+        if category is None:
+            overrides.pop(path, None)
+        else:
+            overrides[path] = category
+        if self.store is not None:
+            self.store.save_categories(overrides)
+        self.overrides = overrides
+        return overrides
 
     def change_for(self, path: str) -> FileChange | None:
         return next((c for c in self.changes if path in (c.path, c.old_path)), None)

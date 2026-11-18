@@ -18,8 +18,11 @@ const changes: ChangedFile[] = [
       { id: 'batch.py:h1', baseStart: 10, baseCount: 1, headStart: 10, headCount: 5 },
       { id: 'batch.py:h2', baseStart: 40, baseCount: 2, headStart: 43, headCount: 0 },
     ],
+    added: 5,
+    removed: 3,
+    category: 'code',
   },
-  { path: 'new_name.py', oldPath: 'old_name.py', status: 'renamed', binary: false, hunks: [{ id: 'new_name.py:h1', baseStart: 0, baseCount: 0, headStart: 0, headCount: 0 }] },
+  { path: 'new_name.py', oldPath: 'old_name.py', status: 'renamed', binary: false, hunks: [{ id: 'new_name.py:h1', baseStart: 0, baseCount: 0, headStart: 0, headCount: 0 }], added: 0, removed: 0, category: 'code' },
 ]
 
 test('a step on code the change did not touch is told apart', () => {

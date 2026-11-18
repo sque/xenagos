@@ -29,8 +29,8 @@
 
 ## 4. Browse mode (spec: diff-browser)
 
-- [ ] 4.1 Server endpoints for file list, per-file diff, file content at a revision, and commit list; verified by tests on the fixture
-- [ ] 4.2 File categories with rule order from design decision 8 and per-review override; verified by tests including a lock file, a `linguist-generated` file and a test file
+- [x] 4.1 Server endpoints for file list, per-file diff, file content at a revision, and commit list; verified by tests on the fixture
+- [x] 4.2 File categories with rule order from design decision 8 and per-review override; verified by tests including a lock file, a `linguist-generated` file and a test file
 - [ ] 4.3 File tree grouped by category with counts, folders kept as a subtree inside each category, Generated collapsed and not rendered until opened; verified in the browser on a change containing a large lock file
 - [ ] 4.4 Unified and side-by-side layouts, labels for renamed, added, deleted and binary files; verified in the browser on the fixture
 - [ ] 4.5 Full-file expansion and stepwise expansion around a hunk; verified in the browser on a file with two distant hunks

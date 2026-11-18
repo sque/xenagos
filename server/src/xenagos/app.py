@@ -23,7 +23,9 @@ from xenagos.api import (
     AgentRequest,
     AgentStatus,
     BranchMoved,
+    CategoryChange,
     ChangedFile,
+    CommitInfo,
     Coverage,
     Delivery,
     FileView,
@@ -41,6 +43,7 @@ from xenagos.api import (
     VoiceInfo,
     VoiceRequest,
 )
+from xenagos.commits import Commit
 from xenagos.coverage import hunk_info, not_covered
 from xenagos.events import Events
 from xenagos.files import BINARY
@@ -198,8 +201,19 @@ def create_app(
             uncommitted=uncommitted(target.repo, paths),
         )
 
+    def commit_or_404(commit: str) -> Commit:
+        found = state.commit(commit)
+        if found is None:
+            raise HTTPException(404, f"{commit} is not a commit of this review")
+        return found
+
     @app.get("/api/changes")
-    def changed_files() -> list[ChangedFile]:
+    def changed_files(commit: str | None = None) -> list[ChangedFile]:
+        """Every file the change touches, or one of its commits touches, with hunks, line counts and category."""
+        if commit is None:
+            found, categories = state.changes, state.categories
+        else:
+            found, categories = state.commit_changes(commit_or_404(commit))
         return [
             ChangedFile(
                 path=c.path,
@@ -207,8 +221,11 @@ def create_app(
                 status=c.status,
                 binary=c.binary,
                 hunks=[hunk_info(h) for h in c.hunks],
+                added=sum(h.head_count for h in c.hunks),
+                removed=sum(h.base_count for h in c.hunks),
+                category=categories.get(c.path, "code"),
             )
-            for c in state.changes
+            for c in found
         ]
 
     @app.get("/api/coverage")
@@ -218,18 +235,41 @@ def create_app(
             raise HTTPException(404, "this review has no walkthrough yet")
         return not_covered(state.plan, state.changes, state.categories)
 
+    @app.get("/api/commits")
+    def review_commits() -> list[CommitInfo]:
+        return [
+            CommitInfo(id=c.id, subject=c.subject, message=c.message, author=c.author, date=c.date)
+            for c in state.commits
+        ]
+
+    @app.put("/api/categories", responses={422: {"model": PlanRejection}})
+    def set_category(change: CategoryChange) -> Any:
+        try:
+            overrides = state.set_category(change.path, change.category)
+        except PlanRejected as rejected:
+            return rejection(rejected)
+        events.publish({"type": "categories"})
+        return overrides
+
     @app.get("/api/tree")
     def tree() -> RepositoryTree:
         """The repository at the head with the change, coverage and visited files marked."""
         return repository_tree(state.head_files, state.changes, state.categories, state.plan)
 
     @app.get("/api/file")
-    def file(path: str) -> FileView:
-        change = state.change_for(path)
+    def file(path: str, commit: str | None = None) -> FileView:
+        """A file at both pinned revisions, or before and after one commit of the review."""
+        if commit is None:
+            change = state.change_for(path)
+            before, after = target.base, target.head
+        else:
+            chosen = commit_or_404(commit)
+            change = next((c for c in state.commit_changes(chosen)[0] if path in (c.path, c.old_path)), None)
+            before, after = chosen.parent, chosen.id
         old_path = change.old_path if change is not None else None
         head_path = change.path if change is not None else path
-        base = state.files.text(target.base, old_path or head_path)
-        head = state.files.text(target.head, head_path)
+        base = state.files.text(before, old_path or head_path)
+        head = state.files.text(after, head_path)
         if change is None and base is None and head is None:
             raise HTTPException(404, f"{path} exists at neither revision")
         return FileView(

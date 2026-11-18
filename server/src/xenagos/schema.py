@@ -12,7 +12,9 @@ from pydantic.json_schema import models_json_schema
 from xenagos.api import (
     AgentRequest,
     AgentStatus,
+    CategoryChange,
     ChangedFile,
+    CommitInfo,
     Coverage,
     Delivery,
     FileView,
@@ -44,6 +46,8 @@ def export() -> dict[str, Any]:
             (TargetStatus, "serialization"),
             (SessionChoiceItem, "serialization"),
             (ChangedFile, "serialization"),
+            (CommitInfo, "serialization"),
+            (CategoryChange, "validation"),
             (Coverage, "serialization"),
             (RepositoryTree, "serialization"),
         ],

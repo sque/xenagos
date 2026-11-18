@@ -13,8 +13,9 @@ import threading
 import time
 from pathlib import Path
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, RootModel, ValidationError
 
+from xenagos.categories import Category
 from xenagos.paths import data_home
 from xenagos.plan import Plan
 from xenagos.target import ReviewTarget
@@ -38,6 +39,10 @@ class SavedReview(BaseModel):
     @property
     def target(self) -> ReviewTarget:
         return ReviewTarget(Path(self.repo), self.base, self.head, self.label, self.branch)
+
+
+class CategoryOverrides(RootModel[dict[str, Category]]):
+    """The reviewer's corrections of file categories for this review (spec: diff-browser, "Category correction")."""
 
 
 _WRITING = threading.RLock()
@@ -94,6 +99,13 @@ class ReviewStore:
 
     def save_plan(self, plan: Plan) -> None:
         self._write("plan.json", plan.model_dump_json(by_alias=True, exclude_none=True, indent=2))
+
+    def load_categories(self) -> dict[str, Category]:
+        saved = _read(self.dir / "categories.json", CategoryOverrides)
+        return dict(saved.root) if saved is not None else {}
+
+    def save_categories(self, overrides: dict[str, Category]) -> None:
+        self._write("categories.json", CategoryOverrides(overrides).model_dump_json(indent=2))
 
     def _write(self, name: str, text: str) -> None:
         self.dir.mkdir(parents=True, exist_ok=True, mode=0o700)

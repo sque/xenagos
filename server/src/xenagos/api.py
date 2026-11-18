@@ -180,6 +180,26 @@ class ChangedFile(Model):
     status: Literal["added", "modified", "deleted", "renamed", "copied", "type-changed"]
     binary: bool
     hunks: list[HunkInfo]
+    added: int = Field(description="Lines added; 0 for a binary file.")
+    removed: int = Field(description="Lines removed; 0 for a binary file.")
+    category: Category
+
+
+class CommitInfo(Model):
+    """A commit of the review, for the per-commit view (spec: diff-browser)."""
+
+    id: str
+    subject: str
+    message: str
+    author: str
+    date: str = Field(description="Author date, ISO 8601.")
+
+
+class CategoryChange(Model):
+    """Put a changed file in another category for this review; null puts it back where the rules place it."""
+
+    path: str
+    category: Category | None
 
 
 class UncoveredFile(Model):

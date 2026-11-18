@@ -56,6 +56,16 @@ export interface BranchMoved {
   tip: string | null;
 }
 /**
+ * Put a changed file in another category for this review; null puts it back where the rules place it.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "CategoryChange".
+ */
+export interface CategoryChange {
+  category: ("code" | "tests" | "generated") | null;
+  path: string;
+}
+/**
  * This interface was referenced by `Root`'s JSON-Schema
  * via the `definition` "CategoryCoverage".
  */
@@ -135,13 +145,22 @@ export interface ChangedEntry {
  * via the `definition` "ChangedFile".
  */
 export interface ChangedFile {
+  /**
+   * Lines added; 0 for a binary file.
+   */
+  added: number;
   binary: boolean;
+  category: "code" | "tests" | "generated";
   hunks: HunkInfo[];
   oldPath: string | null;
   /**
    * Head path, or base path for a deleted file.
    */
   path: string;
+  /**
+   * Lines removed; 0 for a binary file.
+   */
+  removed: number;
   status: "added" | "modified" | "deleted" | "renamed" | "copied" | "type-changed";
 }
 /**
@@ -182,6 +201,22 @@ export interface CodeTarget {
   side?: "base" | "head";
   startCol?: number | null;
   startLine: number;
+}
+/**
+ * A commit of the review, for the per-commit view (spec: diff-browser).
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "CommitInfo".
+ */
+export interface CommitInfo {
+  author: string;
+  /**
+   * Author date, ISO 8601.
+   */
+  date: string;
+  id: string;
+  message: string;
+  subject: string;
 }
 /**
  * What the plan leaves out, by category in the order Code, Tests, Generated; empty categories are omitted.

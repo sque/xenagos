@@ -33,6 +33,7 @@ const combined: ChangedFile[] = [
   file('logo.png', 'modified', 'code', 0, 0, { binary: true }),
   file('tests/test_batch.py', 'modified', 'tests', 1, 1),
   file('uv.lock', 'modified', 'generated', 4000, 0),
+  file('scheduler/batch_pb2.py', 'added', 'generated', 12, 0),
 ]
 const commits: CommitInfo[] = [
   { id: '1'.repeat(40), subject: 'Wrap the handler', message: 'Wrap the handler', author: 'Ann', date: '2026-11-10T10:00:00+00:00' },
@@ -105,7 +106,11 @@ test('files grouped by category with counts, folders inside each group, generate
   expect(screen.getByRole('button', { name: 'Browse' }).getAttribute('aria-pressed')).toBe('true')
   expect(group('Code').querySelector('h3')?.textContent).toBe('Code · 5 files+5 −3')
   expect(group('Tests').querySelector('h3')?.textContent).toBe('Tests · 1 file+1 −1')
-  expect(group('Generated').querySelector('h3')?.textContent).toBe('Generated · 1 file+4000 −0')
+  expect(group('Generated').querySelector('h3')?.textContent).toBe('Generated · 2 files+4012 −0')
+  // A folder holding files of two categories appears in both, with only that category's files.
+  expect(within(group('Generated')).getByRole('button', { name: /^scheduler\// }).parentElement?.querySelector('li')?.getAttribute('data-path')).toBe(
+    'scheduler/batch_pb2.py',
+  )
   // One scheduler folder in Code holding its three files, not a flat list of paths.
   const folder = within(group('Code')).getByRole('button', { name: /^scheduler\// })
   expect([...(folder.parentElement?.querySelectorAll(':scope > ul > li') ?? [])].map((li) => li.getAttribute('data-path'))).toEqual([

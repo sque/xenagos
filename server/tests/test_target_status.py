@@ -70,3 +70,35 @@ def test_uncommitted_changes_to_reviewed_files_are_named_without_touching_the_in
     assert repo.git("status", "--porcelain") == git_status
     # The diff is still the committed change only.
     assert viewer.get("/api/file", params={"path": "app.py"}).json()["head"] == "print('feature one')\n"
+
+
+def test_browsing_a_head_that_is_not_checked_out_leaves_the_checkout_alone(repo: FixtureRepo) -> None:
+    """spec: review-target, "Reviewing a head that is not checked out": xenagos's own reads go through the object
+    store. (A private checkout for the agent is task 3.3.)"""
+    repo.git("switch", "-q", "main")
+    (repo.path / "README.md").write_text("edited, not committed\n")
+    (repo.path / "notes.txt").write_text("untracked\n")
+    repo.git("stash", "list")
+    before = (
+        repo.git("status", "--porcelain=v1", "-uall"),
+        repo.git("branch", "--show-current"),
+        repo.git("stash", "list"),
+        repo.git("rev-parse", "HEAD"),
+    )
+    target = resolve(repo.path, "main...feature")
+    viewer = client(target)
+    paths = [c["path"] for c in viewer.get("/api/changes").json()]
+    for path in paths:
+        assert viewer.get("/api/file", params={"path": path}).status_code == 200
+    for commit in viewer.get("/api/commits").json():
+        assert viewer.get("/api/changes", params={"commit": commit["id"]}).status_code == 200
+    for url in ("/api/tree", "/api/target/status", "/api/review"):
+        assert viewer.get(url).status_code == 200
+    after = (
+        repo.git("status", "--porcelain=v1", "-uall"),
+        repo.git("branch", "--show-current"),
+        repo.git("stash", "list"),
+        repo.git("rev-parse", "HEAD"),
+    )
+    assert after == before
+    assert (repo.path / "README.md").read_text() == "edited, not committed\n"

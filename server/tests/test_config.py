@@ -46,7 +46,7 @@ def client(target: ReviewTarget) -> TestClient:
 
 def plan_with(*narrations: str) -> dict[str, Any]:
     """The sample plan with section 2's steps narrated as given, and section 1 narrated so any style accepts it."""
-    plan = json.loads(json.dumps(SAMPLE))
+    plan: dict[str, Any] = json.loads(json.dumps(SAMPLE))
     for step in plan["sections"][0]["steps"]:
         step["narration"] = "Start here."
     steps = plan["sections"][1]["steps"]
@@ -174,7 +174,7 @@ def test_agent_open_decides_whether_a_window_opens(
 ) -> None:
     write(user / "config.toml", f'agent_open = "{agent_open}"\n')
     windows: list[str] = []
-    monkeypatch.setattr(cli.webbrowser, "open", windows.append)
+    monkeypatch.setattr("webbrowser.open", windows.append)
     monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "session-one")
     assert cli.main(["open", "-C", str(repo.path)]) == 0
     out = capsys.readouterr().out

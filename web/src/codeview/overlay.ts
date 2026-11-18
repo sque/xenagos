@@ -136,8 +136,10 @@ export class Overlay {
     element.style.width = ''
     element.style.height = ''
     attach(element, layerFor(code))
-    const width = element.offsetWidth
-    const height = element.offsetHeight
+    // Fractional sizes rounded up: a width rounded down makes the last word wrap out of the box once it is fixed.
+    const size = element.getBoundingClientRect()
+    const width = Math.ceil(size.width)
+    const height = Math.ceil(size.height)
     const origin = localOrigin(code)
     const panel = visibleArea(this.view.scroller, code, origin)
     const clampX = (x: number) => Math.max(panel.left, Math.min(x, panel.right - width))

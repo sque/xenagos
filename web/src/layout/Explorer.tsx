@@ -89,7 +89,7 @@ export function Explorer(props: {
           />
         </ul>
       )}
-      {built !== null && (
+      {built !== null && (view === 'all' || built.hidden > 0) && (
         <p className="treefoot">
           {view === 'narrow' ? (
             <>

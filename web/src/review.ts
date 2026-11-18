@@ -1,5 +1,5 @@
 import type { FileSides } from './codeview/codeView'
-import type { FileView, Plan, ReviewInfo } from './generated/types'
+import type { ChangedFile, FileView, Plan, ReviewInfo } from './generated/types'
 
 export type { ReviewInfo }
 
@@ -24,4 +24,9 @@ export async function fetchPlan(): Promise<Plan | null> {
 export async function fetchFile(path: string): Promise<FileSides> {
   const file = (await getJson(`/api/file?path=${encodeURIComponent(path)}`)) as FileView
   return { path: file.path, oldPath: file.oldPath, base: file.base, head: file.head }
+}
+
+/** Every file the change touches, with its hunks. */
+export async function fetchChanges(): Promise<ChangedFile[]> {
+  return (await getJson('/api/changes')) as ChangedFile[]
 }

@@ -4,11 +4,12 @@ import { AskPrompt, type AskAt } from '../agent/AskPrompt'
 import { AskWalkthrough } from '../agent/AskWalkthrough'
 import { CodeView, type FileSides, type Tick } from '../codeview/codeView'
 import { Overlay } from '../codeview/overlay'
-import type { CodeTarget, Coverage, Plan, Show } from '../generated/types'
-import { fetchFile } from '../review'
+import type { ChangedFile, CodeTarget, Coverage, Plan, Show } from '../generated/types'
+import { fetchChanges, fetchFile } from '../review'
 import { type SectionSpot, VisualPane } from '../visual/VisualPane'
 import { Icon, type IconName } from './icons'
 import { hunkTarget, NotCovered } from './NotCovered'
+import { Outline } from './Outline'
 import { Player, type PlayerState } from './player'
 import { CodeStage } from './stage'
 import { BrowserVoice, silentVoice } from './voice'
@@ -52,6 +53,10 @@ export function Walkthrough(props: {
   const [voiceOn, setVoiceOn] = useState(props.voice && BrowserVoice.available())
   const [askAt, setAskAt] = useState<AskAt | null>(null)
   const [visualSpot, setVisualSpot] = useState<SectionSpot | null>(null)
+  // Sections played to their end, for the outline's "done".
+  const [done, setDone] = useState<ReadonlySet<number>>(new Set())
+  const [changes, setChanges] = useState<ChangedFile[] | null>(null)
+  const [explained, setExplained] = useState(false)
   const onFileRef = useRef(props.onFile)
   useEffect(() => {
     onFileRef.current = props.onFile
@@ -74,12 +79,28 @@ export function Walkthrough(props: {
     stage.onVisual = (target, form) => {
       setVisualSpot(target === null ? null : { visual: target.visual, element: target.element, form })
     }
-    const player = new Player(plan, stage, silentVoice, setState)
+    const player = new Player(plan, stage, silentVoice, (next) => {
+      setState(next)
+      if (next.status === 'ended') setDone((previous) => new Set(previous).add(next.section))
+    })
     engine.current = { player, stage, view }
     const resize = new ResizeObserver(() => {
       overlay.redraw()
     })
     resize.observe(scroller)
+    // Scrolling the code or clicking in it pauses playback at the current step; resume goes back to its target
+    // (spec: walkthrough-narration, "Reviewer controls"). Only input events count: our own eased scroll fires none.
+    const wander = () => {
+      player.pause()
+    }
+    const scrollKeys = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '])
+    const keyScroll = (event: KeyboardEvent) => {
+      if (scrollKeys.has(event.key)) player.pause()
+    }
+    scroller.addEventListener('wheel', wander, { passive: true })
+    scroller.addEventListener('touchmove', wander, { passive: true })
+    scroller.addEventListener('pointerdown', wander)
+    scroller.addEventListener('keydown', keyScroll)
     // The prompt opens under the selection's last line, where the reviewer is looking.
     view.onSelect = (selection) => {
       if (selection === null) return
@@ -100,6 +121,10 @@ export function Walkthrough(props: {
     }
     return () => {
       player.stop()
+      scroller.removeEventListener('wheel', wander)
+      scroller.removeEventListener('touchmove', wander)
+      scroller.removeEventListener('pointerdown', wander)
+      scroller.removeEventListener('keydown', keyScroll)
       resize.disconnect()
       view.destroy()
       engine.current = null
@@ -109,6 +134,32 @@ export function Walkthrough(props: {
   useEffect(() => {
     engine.current?.player.setVoice(voiceOn ? new BrowserVoice() : silentVoice)
   }, [voiceOn])
+
+  useEffect(() => {
+    let live = true
+    fetchChanges().then(
+      (found) => {
+        if (live) setChanges(found)
+      },
+      () => undefined,
+    )
+    return () => {
+      live = false
+    }
+  }, [])
+
+  // Keyboard equivalents of the transport (design decision 5b). Keys typed into a field, the agent's terminal or a
+  // control that uses them itself are left alone.
+  const keysRef = useRef<(event: KeyboardEvent) => void>(() => undefined)
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      keysRef.current(event)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [])
 
   // Showing code out of turn (the agent's `xen show`, a visual's link): playback pauses and the target is shown
   // without a caption. A newer request replaces an unfinished one.
@@ -166,33 +217,52 @@ export function Walkthrough(props: {
   const section = plan.sections[state.section]
   const steps = section?.steps ?? []
   const playing = state.status === 'playing'
+  const playOrPause = () => {
+    const p = player()
+    if (p === undefined) return
+    if (state.status === 'playing') p.pause()
+    else if (state.status === 'paused') p.resume()
+    else p.play(state.section, state.status === 'ended' ? 0 : state.step)
+  }
+  const hasPrevious = state.step > 0
+  const hasNext = state.step < steps.length - 1
+  useEffect(() => {
+    keysRef.current = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
+      const target = event.target instanceof HTMLElement ? event.target : null
+      if (target?.closest('input, textarea, select, [contenteditable="true"], .agent, [role="separator"]')) return
+      const onControl = target?.closest('button, a, summary') != null
+      const inCode = target?.closest('.scroller') != null
+      const p = player()
+      if (p === undefined) return
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key
+      if ((key === ' ' && !onControl && !inCode) || key === 'k') playOrPause()
+      else if ((key === 'ArrowLeft' && !inCode) || key === 'j') {
+        if (hasPrevious) p.previous()
+      } else if ((key === 'ArrowRight' && !inCode) || key === 'l') {
+        if (hasNext) p.next()
+      } else if (key === 'r') {
+        if (state.status !== 'idle') p.replay()
+      } else if (key === 'c') engine.current?.stage.hideCaption()
+      else return
+      event.preventDefault()
+    }
+  })
 
   return (
     <section className="stage">
       {props.outlineSlot !== null &&
         createPortal(
           <>
-            <p className="orientation">{plan.orientation.problem}</p>
-            <ol>
-              {plan.sections.map((s, i) => (
-                <li key={s.title} aria-current={i === state.section ? 'true' : undefined}>
-                  <button type="button" onClick={() => player()?.play(i)}>
-                    <span className="role">{s.role}</span> {s.title}
-                  </button>
-                  {i === state.section && (
-                    <ol className="steps">
-                      {s.steps.map((step, j) => (
-                        <li key={j} aria-current={j === state.step && state.status !== 'idle' ? 'step' : undefined}>
-                          <button type="button" onClick={() => player()?.play(i, j)}>
-                            {step.narration}
-                          </button>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                </li>
-              ))}
-            </ol>
+            <Outline
+              plan={plan}
+              progress={state}
+              done={done}
+              changes={changes}
+              onPlay={(i, j) => {
+                player()?.play(i, j)
+              }}
+            />
             {props.coverage !== null && (
               <NotCovered
                 coverage={props.coverage}
@@ -212,34 +282,30 @@ export function Walkthrough(props: {
             <span className="position">
               Section {state.section + 1} of {plan.sections.length} · Step {state.step + 1} of {steps.length}
             </span>
-            <p className="explanation" title={section?.explanation}>
+            <button
+              type="button"
+              className="explanation"
+              aria-expanded={explained}
+              title={explained ? 'Show one line' : 'Show the whole explanation'}
+              onClick={() => {
+                setExplained(!explained)
+              }}
+            >
               {section?.explanation}
-            </p>
+            </button>
           </div>
           <div className="transport">
-            <Control icon="previous" label="Previous step" disabled={state.step === 0} onClick={() => player()?.previous()} />
-            {playing ? (
-              <Control icon="pause" label="Pause" onClick={() => player()?.pause()} />
-            ) : (
-              <Control
-                icon="play"
-                label={state.status === 'paused' ? 'Resume' : 'Play'}
-                onClick={() => {
-                  const p = player()
-                  if (p === undefined) return
-                  if (state.status === 'paused') p.resume()
-                  else p.play(state.section, state.status === 'ended' ? 0 : state.step)
-                }}
-              />
-            )}
+            <Control icon="previous" label="Previous step" keys="← or J" disabled={!hasPrevious} onClick={() => player()?.previous()} />
             <Control
-              icon="next"
-              label="Next step"
-              disabled={state.step >= steps.length - 1}
-              onClick={() => player()?.next()}
+              icon={playing ? 'pause' : 'play'}
+              label={playing ? 'Pause' : state.status === 'paused' ? 'Resume' : 'Play'}
+              keys="Space or K"
+              primary
+              onClick={playOrPause}
             />
-            <Control icon="replay" label="Replay step" disabled={state.status === 'idle'} onClick={() => player()?.replay()} />
-            <Control icon="caption" label="Hide caption" onClick={() => engine.current?.stage.hideCaption()} />
+            <Control icon="next" label="Next step" keys="→ or L" disabled={!hasNext} onClick={() => player()?.next()} />
+            <Control icon="replay" label="Replay step" keys="R" disabled={state.status === 'idle'} onClick={() => player()?.replay()} />
+            <Control icon="caption" label="Hide caption" keys="C" onClick={() => engine.current?.stage.hideCaption()} />
             <Control
               icon={voiceOn ? 'voiceOn' : 'voiceOff'}
               label={voiceOn ? 'Turn voice off' : 'Turn voice on'}
@@ -315,13 +381,22 @@ function FileHeading({ file, changes }: { file: FileSides; changes: number }) {
   )
 }
 
-function Control(props: { icon: IconName; label: string; onClick: () => void; disabled?: boolean }) {
+function Control(props: {
+  icon: IconName
+  label: string
+  /** The keyboard equivalent, shown in the tooltip. */
+  keys?: string
+  primary?: boolean
+  onClick: () => void
+  disabled?: boolean
+}) {
   return (
     <button
       type="button"
-      className="icon"
+      className={props.primary === true ? 'icon primary' : 'icon'}
       aria-label={props.label}
-      title={props.label}
+      aria-keyshortcuts={props.keys?.replace(' or ', ' ').replace('←', 'ArrowLeft').replace('→', 'ArrowRight')}
+      title={props.keys === undefined ? props.label : `${props.label} (${props.keys})`}
       onClick={props.onClick}
       disabled={props.disabled}
     >

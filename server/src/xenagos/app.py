@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 from starlette.types import Scope
 
-from xenagos import __version__, claude
+from xenagos import __version__, claude, config
 from xenagos.access import Access, AccessControl
 from xenagos.agent import Agent, AgentError, AgentSettings
 from xenagos.api import (
@@ -35,6 +35,7 @@ from xenagos.api import (
     ShowResult,
     StepAddition,
     VisualAddition,
+    VoiceInfo,
 )
 from xenagos.events import Events
 from xenagos.files import BINARY
@@ -44,8 +45,6 @@ from xenagos.store import ReviewStore
 from xenagos.target import ReviewTarget
 from xenagos.terminal import Terminal
 
-NARRATION_STYLE = "default"
-"""Until narration styles are loaded from configuration (tasks 5.4, 5.5)."""
 VIEWER_MISSING = "The viewer is not built. Run `make web` in the xenagos repository, or install a built package."
 
 
@@ -123,13 +122,18 @@ def create_app(
         title="xenagos", version=__version__, docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan
     )
     app.add_middleware(AccessControl, access=access)
-    state = Review(target, store=store, on_plan=lambda plan: events.publish({"type": "plan"}))
+    state = Review(
+        target,
+        store=store,
+        on_plan=lambda plan: events.publish({"type": "plan"}),
+        style=lambda: config.active_style(target.repo),
+    )
     if store is not None:
         store.save_target(target)
     agent = Agent(
         state,
         store if store is not None else _MemoryStore(target),
-        settings or AgentSettings(),
+        (lambda: settings) if settings is not None else lambda: _agent_settings(target.repo),
         on_change=lambda: events.publish({"type": "agent"}),
     )
     app.state.review = state
@@ -140,8 +144,15 @@ def create_app(
     def health() -> dict[str, str]:
         return {"status": "ok", "version": __version__, "review": target.review_id}
 
+    def current_settings() -> config.Settings:
+        try:
+            return config.load(target.repo)
+        except config.ConfigError as error:
+            raise HTTPException(500, f"the xenagos configuration cannot be used: {error}") from error
+
     @app.get("/api/review")
     def review() -> ReviewInfo:
+        current = current_settings()
         return ReviewInfo(
             id=target.review_id,
             repo=str(target.repo),
@@ -149,7 +160,13 @@ def create_app(
             base=target.base,
             head=target.head,
             branch=target.branch,
-            style=NARRATION_STYLE,
+            style=current.narration.style,
+            voice=VoiceInfo(
+                enabled=current.voice.enabled,
+                provider=current.voice.provider,
+                name=current.voice.name,
+                speed=current.voice.speed,
+            ),
         )
 
     @app.get("/api/changes")
@@ -342,6 +359,11 @@ def create_app(
     else:
         app.mount("/", ViewerFiles(directory=viewer_dir, html=True), name="viewer")
     return app
+
+
+def _agent_settings(repo: Path) -> AgentSettings:
+    session = config.load(repo).session
+    return AgentSettings(name_template=session.name, permission_mode=session.permission_mode)
 
 
 class _MemoryStore(ReviewStore):

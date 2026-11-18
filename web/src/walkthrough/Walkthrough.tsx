@@ -32,6 +32,8 @@ export function Walkthrough(props: {
   pointing: Pointing | null
   opening: Opening | null
   style: string
+  /** Whether voice starts on (configuration: voice.enabled). */
+  voice: boolean
   /** Where the outline is drawn: the top of the right column (design decision 5b). */
   outlineSlot: HTMLElement | null
   onFile: (path: string) => void
@@ -44,7 +46,7 @@ export function Walkthrough(props: {
   const [state, setState] = useState<PlayerState>({ section: 0, step: 0, status: 'idle' })
   const [file, setFile] = useState<FileSides | null>(null)
   const [ticks, setTicks] = useState<Tick[]>([])
-  const [voiceOn, setVoiceOn] = useState(BrowserVoice.available())
+  const [voiceOn, setVoiceOn] = useState(props.voice && BrowserVoice.available())
   const [askAt, setAskAt] = useState<AskAt | null>(null)
   const [visualSpot, setVisualSpot] = useState<SectionSpot | null>(null)
   const onFileRef = useRef(props.onFile)
@@ -190,7 +192,7 @@ export function Walkthrough(props: {
                 </li>
               ))}
             </ol>
-            <AskWalkthrough again style={style} />
+            <AskWalkthrough again style={style} narratedWith={plan.style?.name ?? null} />
           </>,
           props.outlineSlot,
         )}

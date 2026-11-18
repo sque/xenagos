@@ -168,6 +168,10 @@ export interface Plan {
    * @minItems 1
    */
   sections: [Section, ...Section[]];
+  /**
+   * Set by xenagos when it accepts the plan: the style its narration was checked against.
+   */
+  style?: StyleRef | null;
 }
 /**
  * This interface was referenced by `Root`'s JSON-Schema
@@ -239,6 +243,14 @@ export interface VisualElement {
   link?: CodeTarget | null;
 }
 /**
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "StyleRef".
+ */
+export interface StyleRef {
+  hash: string;
+  name: string;
+}
+/**
  * Why a submitted plan was not accepted; each problem names the plan item it concerns.
  *
  * This interface was referenced by `Root`'s JSON-Schema
@@ -278,9 +290,22 @@ export interface ReviewInfo {
   label: string;
   repo: string;
   /**
-   * The narration style a walkthrough is written in (`default` until styles exist).
+   * The active narration style: a walkthrough asked for now is written in it.
    */
   style: string;
+  voice: VoiceInfo;
+}
+/**
+ * Voice settings from configuration (spec: configuration).
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "VoiceInfo".
+ */
+export interface VoiceInfo {
+  enabled: boolean;
+  name: string | null;
+  provider: "browser" | "command";
+  speed: number;
 }
 /**
  * A Claude Code session the reviewer can make the review's agent.

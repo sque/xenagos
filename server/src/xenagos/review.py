@@ -11,11 +11,12 @@ from typing import Any, cast
 
 from pydantic import ValidationError
 
-from xenagos import anchors
+from xenagos import anchors, narration
 from xenagos.api import Show, StepAddition, VisualAddition
+from xenagos.config import ConfigError, Limits, Style
 from xenagos.diff import FileChange, changes
 from xenagos.files import RevisionFiles
-from xenagos.plan import CodeTarget, Plan, Section
+from xenagos.plan import CodeTarget, Plan, Section, StyleRef
 from xenagos.store import ReviewStore
 from xenagos.target import ReviewTarget
 
@@ -32,6 +33,8 @@ class Review:
     store: ReviewStore | None = None
     """Where accepted plans are saved; None keeps them in memory only."""
     on_plan: Callable[[Plan], None] = lambda plan: None
+    style: Callable[[], Style] | None = None
+    """The active narration style, read on each submission; None checks plain text only."""
     plan: Plan | None = None
     files: RevisionFiles = field(init=False)
 
@@ -57,9 +60,16 @@ class Review:
         return self._accept(plan)
 
     def _accept(self, plan: Plan) -> Plan:
-        problems = anchors.check(plan, self.target, self.changes, self.files)
+        problems = [str(p) for p in anchors.check(plan, self.target, self.changes, self.files)]
+        try:
+            style = self.style() if self.style is not None else None
+        except ConfigError as error:
+            raise PlanRejected([f"the narration style cannot be used: {error}"]) from error
+        problems += narration.check(plan, style if style is not None else _PLAIN)
         if problems:
-            raise PlanRejected([str(p) for p in problems])
+            raise PlanRejected(problems)
+        if style is not None:
+            plan = plan.model_copy(update={"style": StyleRef(name=style.name, hash=style.hash)})
         if self.store is not None:
             self.store.save_plan(plan)
         self.plan = plan
@@ -186,3 +196,7 @@ def _revalidated[M: Plan | Section](model: M, **changes: Any) -> M:
 def _describe(error: Any) -> str:
     location = ".".join(str(part) for part in error["loc"]) or "plan"
     return f"{location}: {error['msg']}"
+
+
+_PLAIN = Style(name="none", text="", limits=Limits(), hash="", folder=None)
+"""No style: narration is still checked to be plain text."""

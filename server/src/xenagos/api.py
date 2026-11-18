@@ -24,7 +24,17 @@ class ReviewInfo(Model):
     base: str
     head: str
     branch: str | None
-    style: str = Field(description="The narration style a walkthrough is written in (`default` until styles exist).")
+    style: str = Field(description="The active narration style: a walkthrough asked for now is written in it.")
+    voice: "VoiceInfo"
+
+
+class VoiceInfo(Model):
+    """Voice settings from configuration (spec: configuration)."""
+
+    enabled: bool
+    provider: Literal["browser", "command"]
+    name: str | None
+    speed: float
 
 
 class SessionChoiceItem(Model):

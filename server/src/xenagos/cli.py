@@ -26,16 +26,16 @@ from typing import Any
 
 import uvicorn
 
-from xenagos import __version__, claude, registry
+from xenagos import __version__, claude, config, registry
 from xenagos.app import IdlePolicy, bundled_viewer_dir, create_app
 from xenagos.claude import ClaudeError
 from xenagos.client import ServerError, call
 from xenagos.diff import changes
-from xenagos.guide import RULES, hunk_list
+from xenagos.guide import RULES, hunk_list, style_section
 from xenagos.registry import LOOPBACK, Entry
 from xenagos.schema import render as render_schema
 from xenagos.store import ReviewStore, SavedReview, saved_reviews
-from xenagos.target import ReviewTarget, TargetError, resolve
+from xenagos.target import ReviewTarget, TargetError, repository_root, resolve
 
 START_TIMEOUT_SECONDS = 20.0
 
@@ -91,6 +91,7 @@ def _end_on_terminate(signum: int, frame: FrameType | None) -> None:
 def serve(target: ReviewTarget, port: int, open_browser: bool, session: claude.Session | None = None) -> None:
     """Serve the review in the foreground, or present the server already running for it. `session` becomes the
     review's agent session, replacing any it had: naming one is the user's own request."""
+    settings = load_settings(target.repo)
     store = ReviewStore(target.review_id)
     store.save_target(target)
     if session is not None:
@@ -116,7 +117,12 @@ def serve(target: ReviewTarget, port: int, open_browser: bool, session: claude.S
             holder["server"].should_exit = True
 
         app = create_app(
-            target, entry.access, bundled_viewer_dir(), store=store, idle=IdlePolicy(), on_idle=end_when_idle
+            target,
+            entry.access,
+            bundled_viewer_dir(),
+            store=store,
+            idle=IdlePolicy(idle_seconds=settings.idle_minutes * 60, unopened_seconds=settings.unopened_hours * 3600),
+            on_idle=end_when_idle,
         )
         server = uvicorn.Server(uvicorn.Config(app, log_level="warning"))
         holder["server"] = server
@@ -126,6 +132,14 @@ def serve(target: ReviewTarget, port: int, open_browser: bool, session: claude.S
         server.run(sockets=[sock])
     finally:
         registry.release(entry)
+
+
+def load_settings(repo: Path) -> config.Settings:
+    """The settings for a review of `repo`; invalid configuration stops the command, naming file and setting."""
+    try:
+        return config.load(repo)
+    except config.ConfigError as error:
+        raise CommandError(f"the configuration cannot be used:\n{error}") from error
 
 
 def resolve_target(args: argparse.Namespace) -> ReviewTarget:
@@ -266,6 +280,7 @@ def cmd_open(argv: Sequence[str]) -> int:
     parser.add_argument("--no-browser", action="store_true", help="only print the link; do not open a browser")
     args = parser.parse_args(argv)
     target = resolve_target(args)
+    settings = load_settings(target.repo)
     named = named_session(args.session)
     session = named.session_id if named is not None else claude.opener_session()
     store = ReviewStore(target.review_id)
@@ -283,7 +298,8 @@ def cmd_open(argv: Sequence[str]) -> int:
     if entry is None:
         entry = start_in_background(target.review_id)
     print(f"Review of {target.label} ({target.review_id})", flush=True)
-    present(entry, open_browser=not args.no_browser)
+    # Whether the agent opens a window on the user's screen or only gives the link is the user's setting.
+    present(entry, open_browser=not args.no_browser and settings.agent_open == "window")
     return 0
 
 
@@ -381,19 +397,34 @@ def cmd_guide(argv: Sequence[str]) -> int:
     if args.schema:
         print(render_schema(), end="")
         return 0
-    print(RULES)
+    missing: Exception | str = "the review has no saved state"
     try:
-        entry = locate(args.review)
+        entry: Entry | None = locate(args.review)
     except CommandError as error:
-        print(f"(No hunks listed: {error})")
+        entry, missing = None, error
+    saved = ReviewStore(entry.review_id).load() if entry is not None else None
+    repo = Path(saved.repo) if saved is not None else _repository_here()
+    try:
+        style = config.active_style(repo)
+    except config.ConfigError as error:
+        raise CommandError(str(error)) from error
+    print(RULES)
+    print(style_section(style))
+    if saved is None:
+        print(f"(No hunks listed: {missing})")
         return 0
-    saved = ReviewStore(entry.review_id).load()
-    if saved is not None:
-        print(f"Review {saved.review_id}: {saved.label}")
-        print(f"Repository: {saved.repo}")
-        print(f"Base: {saved.base}  Head: {saved.head}\n")
-        print(hunk_list(changes(Path(saved.repo), saved.base, saved.head)), end="")
+    print(f"Review {saved.review_id}: {saved.label}")
+    print(f"Repository: {saved.repo}")
+    print(f"Base: {saved.base}  Head: {saved.head}\n")
+    print(hunk_list(changes(Path(saved.repo), saved.base, saved.head)), end="")
     return 0
+
+
+def _repository_here() -> Path | None:
+    try:
+        return repository_root(Path())
+    except TargetError:
+        return None
 
 
 def cmd_plan(argv: Sequence[str]) -> int:

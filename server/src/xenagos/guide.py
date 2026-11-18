@@ -1,8 +1,10 @@
-"""What `xen guide` prints for the agent that writes a walkthrough (spec: walkthrough-plan).
+"""What `xen guide` prints for the agent that writes a walkthrough (spec: walkthrough-plan; design decision 6).
 
-This is the format and the rules the server enforces. Task 5.7 adds the active narration style to it.
+The guide is composed when it is asked for: the fixed format rules, then the active narration style with its limits,
+then the review's hunks. So a style edited or selected in configuration applies to the next guide printed.
 """
 
+from xenagos.config import Style
 from xenagos.diff import FileChange
 
 RULES = """\
@@ -39,6 +41,27 @@ safe or ready to merge.
 - `xen step add --section N [--after M] <file>` and `xen visual add --section N <file>` change one section.
 - `xen guide --schema` prints the JSON Schema of the plan.
 """
+
+
+def style_section(style: Style) -> str:
+    """The active style, as the agent writes narration in it."""
+    limits = style.limits
+    rules = []
+    if limits.max_sentences_per_step is not None:
+        rules.append(f"at most {limits.max_sentences_per_step} sentences per step")
+    if limits.max_words_per_step is not None:
+        rules.append(f"at most {limits.max_words_per_step} words per step")
+    if limits.max_steps_per_section is not None:
+        rules.append(f"at most {limits.max_steps_per_section} steps per section")
+    if limits.forbid:
+        rules.append("none of these patterns: " + ", ".join(f"`{p}`" for p in limits.forbid))
+    checked = "; ".join(rules) if rules else "no limits beyond plain text"
+    return (
+        f"## Narration style: {style.name}\n\n"
+        "Write every step's narration in this style. Narration is spoken as written and shown as the caption, so it "
+        f"is plain text with no markup. Submitted narration is checked against the style: {checked}.\n\n"
+        f"{style.text.strip()}\n"
+    )
 
 
 def hunk_list(changes: list[FileChange]) -> str:

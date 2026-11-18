@@ -1,0 +1,11 @@
+max_sentences_per_step = 3
+max_words_per_step = 70
+max_steps_per_section = 6
+
+# Patterns that must not appear in narration.
+forbid = [
+  '\bline\s+\d+',            # spoken line numbers
+  '[\w-]+/[\w./-]+\.\w+',    # file paths
+  '\w+\.\w+\(',              # code read aloud: a dotted call
+  '_\w+_|\w+_\w+_\w+',       # code read aloud: underscore-heavy identifiers
+]

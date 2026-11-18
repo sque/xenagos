@@ -1,0 +1,8 @@
+max_sentences_per_step = 1
+max_words_per_step = 25
+max_steps_per_section = 6
+
+forbid = [
+  '\bline\s+\d+',
+  '[\w-]+/[\w./-]+\.\w+',
+]

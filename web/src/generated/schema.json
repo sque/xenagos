@@ -452,6 +452,18 @@
           },
           "minItems": 1,
           "type": "array"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StyleRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Set by xenagos when it accepts the plan: the style its narration was checked against."
         }
       },
       "required": [
@@ -570,8 +582,11 @@
           "type": "string"
         },
         "style": {
-          "description": "The narration style a walkthrough is written in (`default` until styles exist).",
+          "description": "The active narration style: a walkthrough asked for now is written in it.",
           "type": "string"
+        },
+        "voice": {
+          "$ref": "#/$defs/VoiceInfo"
         }
       },
       "required": [
@@ -581,7 +596,8 @@
         "base",
         "head",
         "branch",
-        "style"
+        "style",
+        "voice"
       ],
       "title": "ReviewInfo",
       "type": "object"
@@ -748,6 +764,23 @@
       "title": "Step",
       "type": "object"
     },
+    "StyleRef": {
+      "additionalProperties": false,
+      "properties": {
+        "hash": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "hash"
+      ],
+      "title": "StyleRef",
+      "type": "object"
+    },
     "Visual": {
       "additionalProperties": false,
       "description": "Agent-authored HTML shown in a sandboxed frame (spec: section-visuals).",
@@ -832,6 +865,43 @@
         "element"
       ],
       "title": "VisualTarget",
+      "type": "object"
+    },
+    "VoiceInfo": {
+      "additionalProperties": false,
+      "description": "Voice settings from configuration (spec: configuration).",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider": {
+          "enum": [
+            "browser",
+            "command"
+          ],
+          "type": "string"
+        },
+        "speed": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "enabled",
+        "provider",
+        "name",
+        "speed"
+      ],
+      "title": "VoiceInfo",
       "type": "object"
     }
   },

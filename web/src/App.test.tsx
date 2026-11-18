@@ -33,6 +33,7 @@ const review = {
   head: '2222222222bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
   branch: 'feature',
   style: 'default',
+  voice: { enabled: false, provider: 'browser', name: null, speed: 1 },
 }
 
 function serve(routes: Record<string, Response>) {

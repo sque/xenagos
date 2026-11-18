@@ -8,7 +8,7 @@ import { App } from '../App'
 import type { Plan } from '../generated/types'
 import '../index.css'
 
-const review = { id: 'r', repo: '/r', label: 'feature against main', base: 'b'.repeat(40), head: 'h'.repeat(40), branch: 'feature', style: 'default' }
+const review = { id: 'r', repo: '/r', label: 'feature against main', base: 'b'.repeat(40), head: 'h'.repeat(40), branch: 'feature', style: 'default', voice: { enabled: false, provider: 'browser', name: null, speed: 1 } }
 const text = Array.from({ length: 80 }, (_, i) => `line_${String(i + 1)} = ${String(i)}`).join('\n') + '\n'
 const plan: Plan = {
   orientation: { problem: 'A long loop stops on the first error.', source: 'inferred' },
@@ -127,4 +127,22 @@ test('below 1100 wide the explorer folds away and opens over the code on request
     expect(box('.explorer').width).toBeGreaterThan(200)
   })
   expect(screen.getByText('gone.py')).toBeDefined()
+})
+
+test('the outline names the style the walkthrough was narrated in and asks for new wording', async () => {
+  routes['/api/plan'] = { ...plan, style: { name: 'default', hash: 'abc' } }
+  routes['/api/review'] = { ...review, style: 'terse' }
+  try {
+    await showAt(1440, 900)
+    expect(screen.getByText('Narrated in default · active style: terse')).toBeDefined()
+    fireEvent.click(screen.getByText('Rewrite the narration'))
+    await vi.waitFor(() => {
+      const calls = (fetch as unknown as { mock: { calls: [string, RequestInit | undefined][] } }).mock.calls
+      const call = calls.find(([url]) => url === '/api/agent/request')
+      expect(JSON.parse(call?.[1]?.body as string)).toEqual({ kind: 'narration' })
+    })
+  } finally {
+    routes['/api/plan'] = plan
+    routes['/api/review'] = review
+  }
 })

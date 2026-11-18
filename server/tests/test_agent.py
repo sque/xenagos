@@ -311,8 +311,10 @@ def test_visible_text_keeps_lines_and_drops_controls() -> None:
 
 def test_plan_is_saved_with_the_review(target: ReviewTarget, fake_claude: FakeClaude) -> None:
     assert client(target).put("/api/plan", json=SAMPLE).status_code == 200
-    saved = client(target).get("/api/plan").json()
-    assert Plan.model_validate(saved) == Plan.model_validate(SAMPLE)
+    saved = Plan.model_validate(client(target).get("/api/plan").json())
+    assert saved.model_copy(update={"style": None}) == Plan.model_validate(SAMPLE)
+    assert saved.style is not None
+    assert saved.style.name == "default"
 
 
 def test_viewer_hears_of_plan_changes_and_pointing(target: ReviewTarget) -> None:

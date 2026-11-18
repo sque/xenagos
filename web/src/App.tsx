@@ -115,6 +115,7 @@ export function App() {
                 pointing={pointing}
                 opening={opening}
                 style={load.review.style}
+                voice={load.review.voice.enabled}
                 outlineSlot={outlineSlot}
                 onFile={setCurrentFile}
               />

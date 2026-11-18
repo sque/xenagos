@@ -139,9 +139,18 @@ class Orientation(Model):
         return self
 
 
+class StyleRef(Model):
+    name: str
+    hash: str
+
+
 class Plan(Model):
     orientation: Orientation
     sections: list[Section] = Field(min_length=1)
+    style: StyleRef | None = Field(
+        default=None,
+        description="Set by xenagos when it accepts the plan: the style its narration was checked against.",
+    )
 
     @model_validator(mode="after")
     def _unique_visuals(self) -> Self:

@@ -17,6 +17,7 @@ from pathlib import Path
 from xenagos import claude, git
 from xenagos.api import AgentRequest, AgentStatus, CodeSelection, Delivery, ElementSelection, Position, Question
 from xenagos.claude import ClaudeError, Session, StillOpen
+from xenagos.config import ConfigError
 from xenagos.review import Review
 from xenagos.store import ReviewStore
 from xenagos.terminal import Terminal
@@ -52,17 +53,24 @@ class Agent:
         self,
         review: Review,
         store: ReviewStore,
-        settings: AgentSettings,
+        settings: Callable[[], AgentSettings],
         on_change: Callable[[], None],
     ) -> None:
         self.review = review
         self.store = store
-        self.settings = settings
+        self._settings = settings
         self._on_change = on_change
         saved = store.load()
         self.session_id = saved.session if saved is not None else None
         self.terminals: list[Terminal] = []
         self._lock = asyncio.Lock()
+
+    def settings(self) -> AgentSettings:
+        """Read on each use: an edited configuration applies to the next session started."""
+        try:
+            return self._settings()
+        except ConfigError as error:
+            raise AgentError(500, str(error)) from error
 
     @property
     def review_id(self) -> str:
@@ -135,7 +143,7 @@ class Agent:
         target = self.review.target
         values = {"repo": target.repo.name, "branch": target.branch or target.head[:10], "review": self.review_id}
         try:
-            return self.settings.name_template.format(**values).strip() or f"review {self.review_id[:8]}"
+            return self.settings().name_template.format(**values).strip() or f"review {self.review_id[:8]}"
         except (KeyError, IndexError, ValueError) as error:
             raise AgentError(500, f"the session name template is not valid: {error}") from error
 
@@ -153,7 +161,7 @@ class Agent:
     def _start(self, message: str) -> Session:
         prompt = f"{self.introduction()}\n\n{message}"
         session = claude.start(
-            self.working_dir(), self.session_name(), self.settings.permission_mode, prompt, self.extra_arguments()
+            self.working_dir(), self.session_name(), self.settings().permission_mode, prompt, self.extra_arguments()
         )
         self.session_id = session.session_id
         self.store.set_session(session.session_id, session.name, session.cwd)

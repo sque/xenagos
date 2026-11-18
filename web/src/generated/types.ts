@@ -42,6 +42,21 @@ export interface AgentStatus {
 }
 /**
  * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "BranchMoved".
+ */
+export interface BranchMoved {
+  /**
+   * Commits on the branch after the reviewed head; null when the head is no longer on the branch.
+   */
+  ahead: number | null;
+  branch: string;
+  /**
+   * The branch's tip now; null when the branch no longer exists.
+   */
+  tip: string | null;
+}
+/**
+ * This interface was referenced by `Root`'s JSON-Schema
  * via the `definition` "CategoryCoverage".
  */
 export interface CategoryCoverage {
@@ -429,6 +444,22 @@ export interface SessionChoiceItem {
 export interface Show {
   form?: "lines" | "box" | "circle";
   target: CodeTarget | VisualTarget;
+}
+/**
+ * What changed around the pinned review since it opened (spec: review-target).
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "TargetStatus".
+ */
+export interface TargetStatus {
+  /**
+   * The reviewed branch no longer points at the reviewed head.
+   */
+  moved: BranchMoved | null;
+  /**
+   * Files in the review with uncommitted changes in the working tree.
+   */
+  uncommitted: string[];
 }
 /**
  * Narration to speak with the `command` provider; voice and speed default to the configured ones.

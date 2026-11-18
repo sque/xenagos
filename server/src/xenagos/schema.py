@@ -22,6 +22,7 @@ from xenagos.api import (
     ReviewInfo,
     SessionChoiceItem,
     Show,
+    TargetStatus,
     VoiceRequest,
 )
 from xenagos.plan import Plan
@@ -40,6 +41,7 @@ def export() -> dict[str, Any]:
             (Delivery, "serialization"),
             (Show, "serialization"),
             (VoiceRequest, "validation"),
+            (TargetStatus, "serialization"),
             (SessionChoiceItem, "serialization"),
             (ChangedFile, "serialization"),
             (Coverage, "serialization"),

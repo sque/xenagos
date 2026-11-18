@@ -230,3 +230,18 @@ class RepositoryTree(Model):
     files: list[str] = Field(description="Every file at the head, with deleted files added back; sorted.")
     changed: list[ChangedEntry]
     visited: list[str] = Field(description="Files some step of the walkthrough targets.")
+
+
+class BranchMoved(Model):
+    branch: str
+    tip: str | None = Field(description="The branch's tip now; null when the branch no longer exists.")
+    ahead: int | None = Field(
+        description="Commits on the branch after the reviewed head; null when the head is no longer on the branch."
+    )
+
+
+class TargetStatus(Model):
+    """What changed around the pinned review since it opened (spec: review-target)."""
+
+    moved: BranchMoved | None = Field(description="The reviewed branch no longer points at the reviewed head.")
+    uncommitted: list[str] = Field(description="Files in the review with uncommitted changes in the working tree.")

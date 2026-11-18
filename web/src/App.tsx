@@ -7,6 +7,7 @@ import type { Coverage, Plan, RepositoryTree } from './generated/types'
 import { Explorer, fetchTree } from './layout/Explorer'
 import { Layout } from './layout/Layout'
 import { fetchPlan, fetchReview, type ReviewInfo } from './review'
+import { TargetNotice } from './TargetNotice'
 import { fetchCoverage } from './walkthrough/NotCovered'
 import { type Opening, type Pointing, Walkthrough } from './walkthrough/Walkthrough'
 
@@ -114,6 +115,7 @@ export function App() {
         <h1>xenagos</h1>
         {load.state === 'ready' && <ReviewHeader review={load.review} />}
       </header>
+      {load.state === 'ready' && <TargetNotice head={load.review.head} />}
       <Layout
         explorerOpen={explorerOpen}
         explorer={

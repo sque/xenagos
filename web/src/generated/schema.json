@@ -104,6 +104,43 @@
       "title": "AgentStatus",
       "type": "object"
     },
+    "BranchMoved": {
+      "additionalProperties": false,
+      "properties": {
+        "ahead": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Commits on the branch after the reviewed head; null when the head is no longer on the branch."
+        },
+        "branch": {
+          "type": "string"
+        },
+        "tip": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The branch's tip now; null when the branch no longer exists."
+        }
+      },
+      "required": [
+        "branch",
+        "tip",
+        "ahead"
+      ],
+      "title": "BranchMoved",
+      "type": "object"
+    },
     "CategoryCoverage": {
       "additionalProperties": false,
       "properties": {
@@ -940,6 +977,36 @@
         "hash"
       ],
       "title": "StyleRef",
+      "type": "object"
+    },
+    "TargetStatus": {
+      "additionalProperties": false,
+      "description": "What changed around the pinned review since it opened (spec: review-target).",
+      "properties": {
+        "moved": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BranchMoved"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The reviewed branch no longer points at the reviewed head."
+        },
+        "uncommitted": {
+          "description": "Files in the review with uncommitted changes in the working tree.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "moved",
+        "uncommitted"
+      ],
+      "title": "TargetStatus",
       "type": "object"
     },
     "UncoveredFile": {

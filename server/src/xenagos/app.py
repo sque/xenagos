@@ -22,6 +22,7 @@ from xenagos.agent import Agent, AgentError, AgentSettings
 from xenagos.api import (
     AgentRequest,
     AgentStatus,
+    BranchMoved,
     ChangedFile,
     Coverage,
     Delivery,
@@ -35,6 +36,7 @@ from xenagos.api import (
     Show,
     ShowResult,
     StepAddition,
+    TargetStatus,
     VisualAddition,
     VoiceInfo,
     VoiceRequest,
@@ -45,7 +47,7 @@ from xenagos.files import BINARY
 from xenagos.plan import Plan
 from xenagos.review import PlanRejected, Review, without_narration
 from xenagos.store import ReviewStore
-from xenagos.target import ReviewTarget
+from xenagos.target import ReviewTarget, branch_moved, uncommitted
 from xenagos.terminal import Terminal
 from xenagos.tree import repository_tree
 
@@ -184,6 +186,17 @@ def create_app(
             raise HTTPException(502, str(error)) from error
         headers = {"Cache-Control": "no-store", "X-Xenagos-Cached": "yes" if audio.cached else "no"}
         return Response(audio.data, media_type=audio.media_type, headers=headers)
+
+    @app.get("/api/target/status")
+    def target_status() -> TargetStatus:
+        """Whether the reviewed branch has moved, and which reviewed files have uncommitted changes. The review itself
+        stays pinned (spec: review-target)."""
+        moved = branch_moved(target)
+        paths = {p for c in state.changes for p in (c.path, c.old_path) if p is not None}
+        return TargetStatus(
+            moved=None if moved is None else BranchMoved(branch=moved.branch, tip=moved.tip, ahead=moved.ahead),
+            uncommitted=uncommitted(target.repo, paths),
+        )
 
     @app.get("/api/changes")
     def changed_files() -> list[ChangedFile]:

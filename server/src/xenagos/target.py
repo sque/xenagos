@@ -145,3 +145,39 @@ def _default_target(repo: Path) -> ReviewTarget:
     head = resolve_commit(repo, "HEAD")
     base_id = _newest(repo, [fork_point(repo, ref, head) for ref in refs])
     return ReviewTarget(repo, base_id, head, f"{branch} against {_short(refs[0])}", branch)
+
+
+@dataclass(frozen=True)
+class Moved:
+    """How the reviewed branch differs from the pinned head (spec: review-target, "Target is pinned")."""
+
+    branch: str
+    tip: str | None
+    """The branch's tip now; None when the branch no longer exists."""
+    ahead: int | None
+    """Commits on the branch after the pinned head; None when the head is no longer on the branch (rewritten)."""
+
+
+def branch_moved(target: ReviewTarget) -> Moved | None:
+    """None while the branch still points at the pinned head, or when the review names no branch."""
+    if target.branch is None:
+        return None
+    tip = git.try_run(target.repo, "rev-parse", "--verify", "--quiet", f"refs/heads/{target.branch}^{{commit}}")
+    if tip == target.head:
+        return None
+    if tip is None:
+        return Moved(target.branch, None, None)
+    if git.try_run(target.repo, "merge-base", "--is-ancestor", target.head, tip) is None:
+        return Moved(target.branch, tip, None)
+    count = git.run(target.repo, "rev-list", "--count", f"{target.head}..{tip}")
+    return Moved(target.branch, tip, int(count))
+
+
+def uncommitted(repo: Path, paths: set[str]) -> list[str]:
+    """The paths among `paths` with uncommitted changes in the user's working tree or index. Read only: git is run
+    with optional locks off (`xenagos.git`), so `git status` does not refresh the index."""
+    output = git.try_run(repo, "status", "--porcelain=v1", "-z", "--untracked-files=no", "--no-renames")
+    if output is None:
+        return []
+    dirty = {entry[3:] for entry in output.split("\0") if len(entry) > 3}
+    return sorted(dirty & paths)

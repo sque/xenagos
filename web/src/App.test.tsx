@@ -168,3 +168,44 @@ test('replaces the review session with another one on request', async () => {
   })
   expect(await screen.findByText('other one')).toBeDefined()
 })
+
+test('reports a moved branch and uncommitted changes, and keeps the pinned head', async () => {
+  serve({
+    '/api/review': json(review),
+    '/api/agent': json({ state: 'none' }),
+    '/api/target/status': json({
+      moved: { branch: 'feature', tip: '3333333333cccccccccccccccccccccccccccccc', ahead: 2 },
+      uncommitted: ['app.py', 'src/lib.py', 'tests/test_app.py'],
+    }),
+  })
+  render(<App />)
+  const notice = await screen.findByText(/is now 2 commits ahead/)
+  expect(notice.textContent).toBe(
+    'feature is now 2 commits ahead of the reviewed head. This review stays at 2222222; run xen in the repository to review the new head.',
+  )
+  expect(screen.getByText(/Uncommitted changes/).textContent).toBe(
+    'Uncommitted changes to app.py, src/lib.py and tests/test_app.py are not included: the review shows committed changes only.',
+  )
+  expect(screen.getByTitle(review.head).textContent).toBe('2222222222')
+})
+
+test('says when the reviewed branch was rewritten or deleted, and nothing when all is as it was', async () => {
+  serve({
+    '/api/review': json(review),
+    '/api/target/status': json({ moved: { branch: 'feature', tip: 'x', ahead: null }, uncommitted: [] }),
+  })
+  render(<App />)
+  expect(await screen.findByText(/was rewritten and no longer contains the reviewed head/)).toBeDefined()
+  cleanup()
+  serve({ '/api/review': json(review), '/api/target/status': json({ moved: { branch: 'feature', tip: null, ahead: null }, uncommitted: [] }) })
+  render(<App />)
+  expect(await screen.findByText(/feature no longer exists/)).toBeDefined()
+  cleanup()
+  const fetch = serve({ '/api/review': json(review), '/api/target/status': json({ moved: null, uncommitted: [] }) })
+  render(<App />)
+  await screen.findByText('feature against main')
+  await vi.waitFor(() => {
+    expect(fetch.mock.calls.some(([url]) => url === '/api/target/status')).toBe(true)
+  })
+  expect(document.querySelector('.targetnotice')).toBeNull()
+})

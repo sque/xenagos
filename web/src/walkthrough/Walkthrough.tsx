@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AskPrompt, type AskAt } from '../agent/AskPrompt'
 import { AskWalkthrough } from '../agent/AskWalkthrough'
 import { CodeView, type FileSides, type Tick } from '../codeview/codeView'
 import { Overlay } from '../codeview/overlay'
-import type { ChangedFile, CodeTarget, Coverage, Plan, Show } from '../generated/types'
+import type { ChangedFile, CodeTarget, Coverage, Plan, Show, VoiceInfo } from '../generated/types'
 import { fetchChanges, fetchFile } from '../review'
 import { type SectionSpot, VisualPane } from '../visual/VisualPane'
 import { Icon, type IconName } from './icons'
@@ -12,7 +12,7 @@ import { hunkTarget, NotCovered } from './NotCovered'
 import { Outline } from './Outline'
 import { Player, type PlayerState } from './player'
 import { CodeStage } from './stage'
-import { BrowserVoice, silentVoice } from './voice'
+import { BrowserVoice, makeVoice, silentVoice, type Voice, voiceAvailable, type VoiceSetup } from './voice'
 
 interface Engine {
   player: Player
@@ -36,8 +36,9 @@ export function Walkthrough(props: {
   /** What the plan leaves out; null until loaded. */
   coverage: Coverage | null
   style: string
-  /** Whether voice starts on (configuration: voice.enabled). */
-  voice: boolean
+  reviewId: string
+  /** Voice settings from configuration; voice starts on when `enabled`. */
+  voice: VoiceInfo
   /** Where the outline is drawn: the top of the right column (design decision 5b). */
   outlineSlot: HTMLElement | null
   onFile: (path: string) => void
@@ -50,13 +51,19 @@ export function Walkthrough(props: {
   const [state, setState] = useState<PlayerState>({ section: 0, step: 0, status: 'idle' })
   const [file, setFile] = useState<FileSides | null>(null)
   const [ticks, setTicks] = useState<Tick[]>([])
-  const [voiceOn, setVoiceOn] = useState(props.voice && BrowserVoice.available())
+  const [voiceOn, setVoiceOn] = useState(props.voice.enabled && voiceAvailable(props.voice.provider))
+  const [speech] = useState<VoiceSetup>({ provider: props.voice.provider, name: props.voice.name, speed: props.voice.speed })
+  const [voiceProblem, setVoiceProblem] = useState<string | null>(null)
+  const offMachine = useOffMachine(speech, props.voice.offMachine)
+  const [disclosed, setDisclosed] = useState(() => wasDisclosed(props.reviewId))
+  const mustDisclose = voiceOn && offMachine !== null && !disclosed
   const [askAt, setAskAt] = useState<AskAt | null>(null)
   const [visualSpot, setVisualSpot] = useState<SectionSpot | null>(null)
   // Sections played to their end, for the outline's "done".
   const [done, setDone] = useState<ReadonlySet<number>>(new Set())
   const [changes, setChanges] = useState<ChangedFile[] | null>(null)
   const [explained, setExplained] = useState(false)
+  const voiceRef = useRef<Voice>(silentVoice)
   const onFileRef = useRef(props.onFile)
   useEffect(() => {
     onFileRef.current = props.onFile
@@ -84,6 +91,7 @@ export function Walkthrough(props: {
       if (next.status === 'ended') setDone((previous) => new Set(previous).add(next.section))
     })
     engine.current = { player, stage, view }
+    player.setVoice(voiceRef.current)
     const resize = new ResizeObserver(() => {
       overlay.redraw()
     })
@@ -131,9 +139,20 @@ export function Walkthrough(props: {
     }
   }, [plan])
 
+  // Voice off, or not yet disclosed when it sends text off the machine: captions at reading pace.
+  const voice: Voice = useMemo(
+    () =>
+      voiceOn && !mustDisclose
+        ? makeVoice(speech, (reason) => {
+            setVoiceProblem(reason)
+          })
+        : silentVoice,
+    [voiceOn, mustDisclose, speech],
+  )
   useEffect(() => {
-    engine.current?.player.setVoice(voiceOn ? new BrowserVoice() : silentVoice)
-  }, [voiceOn])
+    voiceRef.current = voice
+    engine.current?.player.setVoice(voice)
+  }, [voice])
 
   useEffect(() => {
     let live = true
@@ -309,13 +328,51 @@ export function Walkthrough(props: {
             <Control
               icon={voiceOn ? 'voiceOn' : 'voiceOff'}
               label={voiceOn ? 'Turn voice off' : 'Turn voice on'}
-              disabled={!BrowserVoice.available()}
+              disabled={!voiceAvailable(speech.provider)}
               onClick={() => {
                 setVoiceOn(!voiceOn)
               }}
             />
           </div>
         </div>
+        {mustDisclose && (
+          <div className="voicenotice" role="alertdialog" aria-label="Voice sends text off this machine">
+            <p>
+              Narration is spoken by {offMachine}, which sends the text of each step off this machine.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                rememberDisclosed(props.reviewId)
+                setDisclosed(true)
+              }}
+            >
+              Speak it
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setVoiceOn(false)
+              }}
+            >
+              Keep voice off
+            </button>
+          </div>
+        )}
+        {voiceProblem !== null && (
+          <div className="voicenotice" role="alert">
+            <p>The voice failed: {voiceProblem}. Playing with captions only.</p>
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => {
+                setVoiceProblem(null)
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
         {section?.visuals !== undefined && section.visuals.length > 0 && (
           <VisualPane
             key={state.section}
@@ -403,4 +460,42 @@ function Control(props: {
       <Icon name={props.icon} />
     </button>
   )
+}
+
+const DISCLOSED = 'xenagos.voice-disclosed.'
+
+function wasDisclosed(review: string): boolean {
+  try {
+    return localStorage.getItem(DISCLOSED + review) === 'yes'
+  } catch {
+    return false
+  }
+}
+
+function rememberDisclosed(review: string): void {
+  try {
+    localStorage.setItem(DISCLOSED + review, 'yes')
+  } catch {
+    // No storage: the notice comes back on the next load, which errs on the side of saying it.
+  }
+}
+
+/** Who sends narration off the machine, for the disclosure, or null when the voice stays on it: a command the user
+ * marked `off_machine`, or a browser voice the browser itself says is not local. Browser voices load late. */
+function useOffMachine(speech: VoiceSetup, commandOffMachine: boolean): string | null {
+  // Only a trigger to look again: browsers list their voices some time after the page loads.
+  const [, setVoicesSeen] = useState(0)
+  useEffect(() => {
+    if (speech.provider !== 'browser' || !BrowserVoice.available()) return
+    const changed = () => {
+      setVoicesSeen((n) => n + 1)
+    }
+    speechSynthesis.addEventListener('voiceschanged', changed)
+    return () => {
+      speechSynthesis.removeEventListener('voiceschanged', changed)
+    }
+  }, [speech.provider])
+  if (speech.provider === 'command') return commandOffMachine ? 'the configured voice command' : null
+  const chosen = BrowserVoice.pick(speech.name)
+  return chosen !== null && !chosen.localService ? `the browser voice "${chosen.name}"` : null
 }

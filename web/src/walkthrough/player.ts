@@ -111,6 +111,8 @@ export class Player {
         this.stage.visual(target, step.form)
       }
       await this.stage.caption(step.narration, signal)
+      const following = steps[index + 1]
+      if (following !== undefined) this.voice.prepare?.(following.narration)
       await this.voice.speak(step.narration, signal)
       if (index < steps.length - 1) await wait(this.pause_ms, signal)
     }

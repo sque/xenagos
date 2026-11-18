@@ -400,6 +400,10 @@ export interface ReviewInfo {
 export interface VoiceInfo {
   enabled: boolean;
   name: string | null;
+  /**
+   * The configured command sends narration text off this machine.
+   */
+  offMachine: boolean;
   provider: "browser" | "command";
   speed: number;
 }
@@ -425,4 +429,15 @@ export interface SessionChoiceItem {
 export interface Show {
   form?: "lines" | "box" | "circle";
   target: CodeTarget | VisualTarget;
+}
+/**
+ * Narration to speak with the `command` provider; voice and speed default to the configured ones.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "VoiceRequest".
+ */
+export interface VoiceRequest {
+  speed?: number | null;
+  text: string;
+  voice?: string | null;
 }

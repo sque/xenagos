@@ -147,7 +147,8 @@ export function App() {
                 opening={opening}
                 coverage={coverage}
                 style={load.review.style}
-                voice={load.review.voice.enabled}
+                reviewId={load.review.id}
+                voice={load.review.voice}
                 outlineSlot={outlineSlot}
                 onFile={setCurrentFile}
               />

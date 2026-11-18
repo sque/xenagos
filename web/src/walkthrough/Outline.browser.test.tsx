@@ -226,3 +226,16 @@ test('scrolling or clicking in the code pauses at the step, and resume returns t
   await screen.findByRole('button', { name: 'Resume' })
   expect(states()).toEqual(['done', 'done', 'current'])
 })
+
+test('stepping back while the next file fades in leaves the shown file visible', async () => {
+  await open()
+  key('l')
+  await new Promise((resolve) => setTimeout(resolve, 60))
+  key('j')
+  await vi.waitFor(() => {
+    expect(position()).toBe('Section 1 of 2 · Step 1 of 3')
+    expect(shadow()?.querySelector('.xen-caption[data-shown]')?.textContent).toContain('The call is wrapped here.')
+  })
+  expect(filePath()).toBe('a.py')
+  expect(document.querySelector<HTMLElement>('.codepanel')?.style.opacity).toBe('1')
+})

@@ -245,6 +245,17 @@ that reads text on standard input and writes an audio file; covers macOS `say` a
 voice and speed are set in the same configuration files. Cloud providers implement the same interface later. Audio
 from non-browser providers is cached per step by a hash of text, provider, voice and speed.
 
+As built (task 6.9): `voice.command` is the program and its arguments as a TOML list, run without a shell, with
+`{output}` (required), `{voice}`, `{speed}` and `{rate}` (words a minute, 175 at speed 1, for `say -r`) filled in;
+the narration arrives on standard input. The server (`POST /api/voice`) sniffs the format of what was written and
+serves WAV, MP3, Ogg, FLAC or MP4; AIFF, the default of macOS `say`, is refused with a hint because Chromium cannot
+play it (`say -o {output} --data-format=LEI16@22050` writes WAV). The cache key also includes the command. The viewer
+asks for the next step's audio while the current one plays. A voice that fails is reported once and the rest plays
+with captions at reading pace. Disclosure: the user marks a command that sends text away with `voice.off_machine`;
+for the `browser` provider the browser's own `localService` flag on the chosen voice decides. The viewer asks once
+per review (remembered in the browser) and stays silent until the reviewer accepts. Chromium plays audio only after
+the reviewer has interacted with the page; pressing Play is such an interaction.
+
 ### 7. Visuals
 
 A visual is agent-authored HTML shown in a sandboxed frame with scripts allowed and no network, same-origin access or
@@ -280,7 +291,9 @@ test path and file name patterns; otherwise Code.
 
 Settings are merged key by key, repository over user over built-in, and validated against one schema; an unknown key
 is an error. `idle_minutes` defaults to 30 and `unopened_hours` to 24. Settings in this change: `agent_open` (`window` or `link`), `session.name` (template), `session.permission_mode`, `narration.style`, `voice.provider`,
-`voice.name`, `voice.speed`, `voice.enabled`, `idle_minutes`, `unopened_hours`.
+`voice.name`, `voice.speed`, `voice.enabled`, `voice.command`, `voice.off_machine`, `idle_minutes`, `unopened_hours`.
+`voice.command` is required when `voice.provider` is `command`; that is checked on the merged settings, so a
+repository can choose the provider while the user's file holds the command.
 
 ### 9. State and access
 

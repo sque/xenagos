@@ -54,11 +54,34 @@ class NarrationSettings(_Section):
     style: str = Field(default="default", pattern=STYLE_NAME)
 
 
+VOICE_PLACEHOLDERS = ("output", "voice", "speed", "rate")
+
+
 class VoiceSettings(_Section):
     enabled: bool = True
     provider: Literal["browser", "command"] = "browser"
     name: str | None = None
     speed: PositiveFloat = 1.0
+    command: list[str] | None = Field(default=None, min_length=1)
+    """For the `command` provider: the program and its arguments, run without a shell, with the narration on standard
+    input. It writes the audio to {output}; {voice} is `name`, {speed} is `speed`, {rate} is `speed` in words a minute
+    (175 at speed 1), for macOS `say -r`."""
+    off_machine: bool = False
+    """Set when the command sends narration text off this machine; the viewer says so before the first use."""
+
+    @field_validator("command")
+    @classmethod
+    def _command_fields(cls, value: list[str] | None) -> list[str] | None:
+        if value is None:
+            return None
+        used = {name for part in value for name in re.findall(r"{([^{}]*)}", part)}
+        unknown = used - set(VOICE_PLACEHOLDERS)
+        if unknown:
+            allowed = ", ".join(f"{{{name}}}" for name in VOICE_PLACEHOLDERS)
+            raise ValueError(f"the command may use {allowed}, not {{{sorted(unknown)[0]}}}")
+        if "output" not in used:
+            raise ValueError("the command must write its audio to {output}")
+        return value
 
 
 class Settings(_Section):
@@ -87,7 +110,10 @@ def load(repo: Path | None = None) -> Settings:
         if layer is not None:
             _check(path, layer)
             merged = _merge(merged, layer)
-    return Settings.model_validate(merged)
+    settings = Settings.model_validate(merged)
+    if settings.voice.provider == "command" and settings.voice.command is None:
+        raise ConfigError('voice.command: must be set when voice.provider is "command"')
+    return settings
 
 
 def _read(path: Path) -> dict[str, Any] | None:

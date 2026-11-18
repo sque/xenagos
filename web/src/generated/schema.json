@@ -1119,6 +1119,10 @@
             }
           ]
         },
+        "offMachine": {
+          "description": "The configured command sends narration text off this machine.",
+          "type": "boolean"
+        },
         "provider": {
           "enum": [
             "browser",
@@ -1134,9 +1138,50 @@
         "enabled",
         "provider",
         "name",
-        "speed"
+        "speed",
+        "offMachine"
       ],
       "title": "VoiceInfo",
+      "type": "object"
+    },
+    "VoiceRequest": {
+      "additionalProperties": false,
+      "description": "Narration to speak with the `command` provider; voice and speed default to the configured ones.",
+      "properties": {
+        "speed": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 4,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "text": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        "voice": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "VoiceRequest",
       "type": "object"
     }
   },

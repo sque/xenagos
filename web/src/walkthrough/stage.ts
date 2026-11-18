@@ -31,7 +31,14 @@ export class CodeStage implements Stage {
     const fade = reducedMotion() ? 0 : FADE_MS
     this.panel.style.transition = `opacity ${String(fade)}ms ease`
     this.panel.style.opacity = '0'
-    await wait(fade, signal)
+    try {
+      await wait(fade, signal)
+    } catch (error) {
+      // Stopped before the new file is shown, as when the reviewer steps back at once: the shown file stays, and
+      // must not stay faded out.
+      this.panel.style.opacity = '1'
+      throw error
+    }
     await this.view.show(file)
     this.onFile(file)
     this.panel.style.opacity = '1'

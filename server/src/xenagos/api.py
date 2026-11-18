@@ -36,6 +36,15 @@ class VoiceInfo(Model):
     provider: Literal["browser", "command"]
     name: str | None
     speed: float
+    off_machine: bool = Field(description="The configured command sends narration text off this machine.")
+
+
+class VoiceRequest(Model):
+    """Narration to speak with the `command` provider; voice and speed default to the configured ones."""
+
+    text: str = Field(min_length=1, max_length=4000)
+    voice: str | None = None
+    speed: float | None = Field(default=None, gt=0, le=4)
 
 
 class SessionChoiceItem(Model):

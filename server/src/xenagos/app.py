@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 from starlette.types import Scope
 
-from xenagos import __version__, claude, config
+from xenagos import __version__, claude, config, voice
 from xenagos.access import Access, AccessControl
 from xenagos.agent import Agent, AgentError, AgentSettings
 from xenagos.api import (
@@ -37,6 +37,7 @@ from xenagos.api import (
     StepAddition,
     VisualAddition,
     VoiceInfo,
+    VoiceRequest,
 )
 from xenagos.coverage import hunk_info, not_covered
 from xenagos.events import Events
@@ -169,8 +170,20 @@ def create_app(
                 provider=current.voice.provider,
                 name=current.voice.name,
                 speed=current.voice.speed,
+                off_machine=current.voice.off_machine,
             ),
         )
+
+    @app.post("/api/voice", response_class=Response)
+    async def speak(request: VoiceRequest) -> Response:
+        """The step's narration as audio from the configured voice command (spec: walkthrough-narration)."""
+        settings = current_settings().voice
+        try:
+            audio = await asyncio.to_thread(voice.speak, settings, request.text, request.voice, request.speed)
+        except voice.VoiceError as error:
+            raise HTTPException(502, str(error)) from error
+        headers = {"Cache-Control": "no-store", "X-Xenagos-Cached": "yes" if audio.cached else "no"}
+        return Response(audio.data, media_type=audio.media_type, headers=headers)
 
     @app.get("/api/changes")
     def changed_files() -> list[ChangedFile]:

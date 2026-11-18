@@ -62,7 +62,7 @@
 - [ ] 6.10 Narration menu with voice group and wording group, including the rewrite-narration request and the active style name; verified in the browser
 - [x] 6.11 Visual frame with sandbox, `link`, `select` and `spotlight` messages, bundled Mermaid helper, and the render-failure notice; verified by a visual that tries a network call and is blocked, and a malformed visual that shows the notice
 - [x] 6.12 Visual pane above the code: shown only when the section has one, collapse and enlarge, code view takes freed space; verified in the browser moving between a section with and without a visual
-- [ ] 6.13 Not-covered hunks reachable in walkthrough mode with files and line counts; verified in the browser on a plan that leaves one hunk unclaimed
+- [x] 6.13 Not-covered hunks reachable in walkthrough mode with files and line counts; verified in the browser on a plan that leaves one hunk unclaimed
 
 ## 7. Agent link (spec: agent-link)
 

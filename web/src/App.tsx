@@ -3,10 +3,11 @@ import { AgentPane } from './agent/AgentPane'
 import { type AgentStatus, fetchAgent } from './agent/api'
 import { AskWalkthrough } from './agent/AskWalkthrough'
 import { listen } from './agent/events'
-import type { Plan } from './generated/types'
+import type { Coverage, Plan } from './generated/types'
 import { Explorer } from './layout/Explorer'
 import { Layout } from './layout/Layout'
 import { fetchPlan, fetchReview, type ReviewInfo } from './review'
+import { fetchCoverage } from './walkthrough/NotCovered'
 import { type Opening, type Pointing, Walkthrough } from './walkthrough/Walkthrough'
 
 type Load =
@@ -24,6 +25,7 @@ export function App() {
   const [currentFile, setCurrentFile] = useState<string | null>(null)
   const [opening, setOpening] = useState<Opening | null>(null)
   const [explorerOpen, setExplorerOpen] = useState(false)
+  const [covered, setCovered] = useState<{ plan: Plan; coverage: Coverage | null } | null>(null)
 
   const refreshAgent = useCallback(() => {
     fetchAgent().then(setAgent, (error: unknown) => {
@@ -69,6 +71,22 @@ export function App() {
   }, [refreshAgent])
 
   const plan = load.state === 'ready' ? load.plan : null
+
+  // The not-covered list follows the plan: a new plan may claim other hunks.
+  useEffect(() => {
+    if (plan === null) return
+    let live = true
+    fetchCoverage().then(
+      (coverage) => {
+        if (live) setCovered({ plan, coverage })
+      },
+      () => undefined,
+    )
+    return () => {
+      live = false
+    }
+  }, [plan])
+  const coverage = covered !== null && covered.plan === plan ? covered.coverage : null
   return (
     <div className="app">
       <header className="topbar">
@@ -114,6 +132,7 @@ export function App() {
                 plan={plan}
                 pointing={pointing}
                 opening={opening}
+                coverage={coverage}
                 style={load.review.style}
                 voice={load.review.voice.enabled}
                 outlineSlot={outlineSlot}

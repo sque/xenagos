@@ -4,10 +4,11 @@ import { AskPrompt, type AskAt } from '../agent/AskPrompt'
 import { AskWalkthrough } from '../agent/AskWalkthrough'
 import { CodeView, type FileSides, type Tick } from '../codeview/codeView'
 import { Overlay } from '../codeview/overlay'
-import type { CodeTarget, Plan, Show } from '../generated/types'
+import type { CodeTarget, Coverage, Plan, Show } from '../generated/types'
 import { fetchFile } from '../review'
 import { type SectionSpot, VisualPane } from '../visual/VisualPane'
 import { Icon, type IconName } from './icons'
+import { hunkTarget, NotCovered } from './NotCovered'
 import { Player, type PlayerState } from './player'
 import { CodeStage } from './stage'
 import { BrowserVoice, silentVoice } from './voice'
@@ -31,6 +32,8 @@ export function Walkthrough(props: {
   plan: Plan
   pointing: Pointing | null
   opening: Opening | null
+  /** What the plan leaves out; null until loaded. */
+  coverage: Coverage | null
   style: string
   /** Whether voice starts on (configuration: voice.enabled). */
   voice: boolean
@@ -110,9 +113,10 @@ export function Walkthrough(props: {
   // Showing code out of turn (the agent's `xen show`, a visual's link): playback pauses and the target is shown
   // without a caption. A newer request replaces an unfinished one.
   const pointer = useRef<AbortController | null>(null)
-  const pointAt = (target: CodeTarget, form: 'lines' | 'box' | 'circle') => {
+  // `path` is the file to open, which differs from the target's path for the base side of a renamed file.
+  const pointAt = (target: CodeTarget | null, form: 'lines' | 'box' | 'circle', path = target?.path) => {
     const current = engine.current
-    if (current === null) return
+    if (current === null || path === undefined) return
     current.player.pause()
     pointer.current?.abort(new DOMException('replaced', 'AbortError'))
     const controller = new AbortController()
@@ -120,7 +124,8 @@ export function Walkthrough(props: {
     const point = async () => {
       await current.stage.caption(null, controller.signal)
       current.stage.spotlight(null, form)
-      await current.stage.showFile(target.path, controller.signal)
+      await current.stage.showFile(path, controller.signal)
+      if (target === null) return
       await current.stage.bringIntoView(target, controller.signal)
       current.stage.spotlight(target, form)
     }
@@ -147,18 +152,14 @@ export function Walkthrough(props: {
   }, [pointing])
 
   // A file chosen in the explorer opens at its top; playback pauses (spec: repository-explorer).
+  const openRef = useRef<(path: string) => void>(() => undefined)
   useEffect(() => {
-    const current = engine.current
-    if (opening === null || current === null) return
-    current.player.pause()
-    pointer.current?.abort(new DOMException('replaced', 'AbortError'))
-    const controller = new AbortController()
-    pointer.current = controller
-    current.stage.spotlight(null, 'lines')
-    current.stage.caption(null, controller.signal).then(
-      () => current.stage.showFile(opening.path, controller.signal),
-      () => undefined,
-    )
+    openRef.current = (path: string) => {
+      pointAt(null, 'lines', path)
+    }
+  })
+  useEffect(() => {
+    if (opening !== null) openRef.current(opening.path)
   }, [opening])
 
   const player = () => engine.current?.player
@@ -192,6 +193,15 @@ export function Walkthrough(props: {
                 </li>
               ))}
             </ol>
+            {props.coverage !== null && (
+              <NotCovered
+                coverage={props.coverage}
+                current={file?.path ?? null}
+                onOpen={(uncovered, hunk) => {
+                  pointAt(hunkTarget(uncovered, hunk), 'lines', uncovered.path)
+                }}
+              />
+            )}
             <AskWalkthrough again style={style} narratedWith={plan.style?.name ?? null} />
           </>,
           props.outlineSlot,

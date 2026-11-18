@@ -12,7 +12,7 @@ from typing import Any, cast
 from pydantic import ValidationError
 
 from xenagos import anchors, narration
-from xenagos.api import Show, StepAddition, VisualAddition
+from xenagos.api import AskedQuestion, Position, Show, StepAddition, VisualAddition
 from xenagos.categories import Category, categorize
 from xenagos.commits import Commit, commits
 from xenagos.config import ConfigError, Limits, Style
@@ -40,6 +40,10 @@ class Review:
     """The active narration style, read on each submission; None checks plain text only."""
     plan: Plan | None = None
     files: RevisionFiles = field(init=False)
+    progress: Position | None = field(init=False)
+    """Where the reviewer last was in the walkthrough."""
+    questions: list[AskedQuestion] = field(init=False)
+    """The questions the reviewer asked, oldest first."""
     overrides: dict[str, Category] = field(init=False)
     """The reviewer's category corrections, by path."""
     _commit_changes: dict[str, tuple[list[FileChange], dict[str, Category]]] = field(init=False, default_factory=dict)
@@ -47,6 +51,8 @@ class Review:
     def __post_init__(self) -> None:
         self.files = RevisionFiles(self.target.repo)
         self.overrides = self.store.load_categories() if self.store is not None else {}
+        self.progress = self.store.load_progress() if self.store is not None else None
+        self.questions = self.store.load_questions() if self.store is not None else []
         if self.plan is None and self.store is not None:
             self.plan = self.store.load_plan()
 
@@ -83,6 +89,21 @@ class Review:
             self._commit_changes[commit.id] = (found, rules)
         found, rules = self._commit_changes[commit.id]
         return found, {**rules, **{p: c for p, c in self.overrides.items() if p in rules}}
+
+    def set_progress(self, position: Position) -> None:
+        """Remember where the reviewer is; it must be a step of the current walkthrough."""
+        plan = self._current()
+        if position.section > len(plan.sections) or position.step > len(plan.sections[position.section - 1].steps):
+            raise PlanRejected([f"the walkthrough has no step {position.step} in section {position.section}"])
+        if position != self.progress:
+            self.progress = position
+            if self.store is not None:
+                self.store.save_progress(position)
+
+    def record_question(self, question: AskedQuestion) -> None:
+        self.questions = [*self.questions, question]
+        if self.store is not None:
+            self.store.save_questions(self.questions)
 
     def set_category(self, path: str, category: Category | None) -> dict[str, Category]:
         """Put a changed file in another category for this review, or back to its rule's (None)."""

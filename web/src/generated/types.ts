@@ -41,6 +41,62 @@ export interface AgentStatus {
   state: "none" | "attachable" | "not-shown" | "ended" | "unavailable";
 }
 /**
+ * A question the reviewer asked, kept with the review (spec: review-session, "A review survives its instance").
+ * The answer is in the agent session's conversation.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "AskedQuestion".
+ */
+export interface AskedQuestion {
+  /**
+   * When it was asked, in seconds since the epoch.
+   */
+  asked: number;
+  position?: Position | null;
+  /**
+   * The question as the session received it: its visible text.
+   */
+  question: string;
+  selection: CodeSelection | ElementSelection;
+}
+/**
+ * Where the reviewer was in the walkthrough, counted from 1.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "Position".
+ */
+export interface Position {
+  section: number;
+  step: number;
+}
+/**
+ * Lines the reviewer selected. In the unified view a selection can start on a deleted line and end on an added
+ * one, so each end names its side.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "CodeSelection".
+ */
+export interface CodeSelection {
+  endLine: number;
+  endSide: "base" | "head";
+  kind: "code";
+  /**
+   * The file as the viewer names it: its head path, or base path if deleted.
+   */
+  path: string;
+  startLine: number;
+  startSide: "base" | "head";
+}
+/**
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "ElementSelection".
+ */
+export interface ElementSelection {
+  element: string;
+  kind: "element";
+  visual: string;
+}
+/**
  * This interface was referenced by `Root`'s JSON-Schema
  * via the `definition` "BranchMoved".
  */
@@ -164,24 +220,6 @@ export interface ChangedFile {
   status: "added" | "modified" | "deleted" | "renamed" | "copied" | "type-changed";
 }
 /**
- * Lines the reviewer selected. In the unified view a selection can start on a deleted line and end on an added
- * one, so each end names its side.
- *
- * This interface was referenced by `Root`'s JSON-Schema
- * via the `definition` "CodeSelection".
- */
-export interface CodeSelection {
-  endLine: number;
-  endSide: "base" | "head";
-  kind: "code";
-  /**
-   * The file as the viewer names it: its head path, or base path if deleted.
-   */
-  path: string;
-  startLine: number;
-  startSide: "base" | "head";
-}
-/**
  * Lines of a file at the base or head revision, optionally narrowed to a span of characters.
  *
  * Lines and columns count from 1 and both ends are included. With a span, `startCol` is on the first line and
@@ -247,15 +285,6 @@ export interface Delivery {
    * True when a session was started for it, with it as the first message.
    */
   started: boolean;
-}
-/**
- * This interface was referenced by `Root`'s JSON-Schema
- * via the `definition` "ElementSelection".
- */
-export interface ElementSelection {
-  element: string;
-  kind: "element";
-  visual: string;
 }
 /**
  * A file at both pinned revisions, for the whole-file view. Text is absent when the file does not exist at that
@@ -387,16 +416,6 @@ export interface StyleRef {
  */
 export interface PlanRejection {
   problems: string[];
-}
-/**
- * Where the reviewer was in the walkthrough, counted from 1.
- *
- * This interface was referenced by `Root`'s JSON-Schema
- * via the `definition` "Position".
- */
-export interface Position {
-  section: number;
-  step: number;
 }
 /**
  * This interface was referenced by `Root`'s JSON-Schema

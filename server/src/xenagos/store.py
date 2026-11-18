@@ -15,6 +15,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, RootModel, ValidationError
 
+from xenagos.api import AskedQuestion, Position
 from xenagos.categories import Category
 from xenagos.paths import data_home
 from xenagos.plan import Plan
@@ -39,6 +40,10 @@ class SavedReview(BaseModel):
     @property
     def target(self) -> ReviewTarget:
         return ReviewTarget(Path(self.repo), self.base, self.head, self.label, self.branch)
+
+
+class AskedQuestions(RootModel[list[AskedQuestion]]):
+    pass
 
 
 class CategoryOverrides(RootModel[dict[str, Category]]):
@@ -99,6 +104,19 @@ class ReviewStore:
 
     def save_plan(self, plan: Plan) -> None:
         self._write("plan.json", plan.model_dump_json(by_alias=True, exclude_none=True, indent=2))
+
+    def load_progress(self) -> Position | None:
+        return _read(self.dir / "progress.json", Position)
+
+    def save_progress(self, position: Position) -> None:
+        self._write("progress.json", position.model_dump_json())
+
+    def load_questions(self) -> list[AskedQuestion]:
+        saved = _read(self.dir / "questions.json", AskedQuestions)
+        return list(saved.root) if saved is not None else []
+
+    def save_questions(self, questions: list[AskedQuestion]) -> None:
+        self._write("questions.json", AskedQuestions(questions).model_dump_json(by_alias=True, indent=2))
 
     def load_categories(self) -> dict[str, Category]:
         saved = _read(self.dir / "categories.json", CategoryOverrides)

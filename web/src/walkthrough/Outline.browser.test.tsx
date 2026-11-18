@@ -259,3 +259,43 @@ test('after browsing, the walkthrough opens again at the step it was on', async 
   expect(states()).toEqual(['done', 'done', 'upcoming'])
   expect(document.querySelector('.transport .icon.primary')?.getAttribute('aria-label')).toBe('Play')
 })
+
+test('a review opened again starts where it was left and lists the questions asked, which show their code', async () => {
+  routes['/api/progress'] = { section: 1, step: 3 }
+  routes['/api/questions'] = [
+    {
+      question: 'Why does the queue hand out batches here?',
+      selection: { kind: 'code', path: 'q.py', startSide: 'head', startLine: 5, endSide: 'head', endLine: 6 },
+      position: { section: 1, step: 2 },
+      asked: 1795000000,
+    },
+  ]
+  try {
+    await page.viewport(1440, 900)
+    render(<App />)
+    await vi.waitFor(() => {
+      expect(position()).toBe('Section 1 of 2 · Step 3 of 3')
+    })
+    const list = outline().querySelector('details.questions')
+    expect(list?.querySelector('summary')?.textContent).toBe('Your questions 1')
+    fireEvent.click(within(list as HTMLElement).getByText('Why does the queue hand out batches here?'))
+    await vi.waitFor(() => {
+      expect(filePath()).toBe('q.py')
+      const rows = shadow()?.querySelectorAll('[data-content] > [data-line="5"], [data-content] > [data-line="6"]')
+      const mark = shadow()?.querySelector('.xen-mark')?.getBoundingClientRect()
+      expect(rows?.length).toBe(2)
+      expect(mark && Math.abs(mark.top - (rows?.[0]?.getBoundingClientRect().top ?? 0))).toBeLessThan(0.5)
+    })
+    // Moving on is saved for the next time.
+    key('j')
+    await vi.waitFor(() => {
+      const saved = (fetch as unknown as { mock: { calls: [string, RequestInit | undefined][] } }).mock.calls.filter(
+        ([url, init]) => url === '/api/progress' && init?.method === 'PUT',
+      )
+      expect(saved.map(([, init]) => JSON.parse(init?.body as string) as unknown).at(-1)).toEqual({ section: 1, step: 2 })
+    })
+  } finally {
+    delete routes['/api/progress']
+    delete routes['/api/questions']
+  }
+})

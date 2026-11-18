@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { AgentPane } from './agent/AgentPane'
 import { type AgentStatus, fetchAgent } from './agent/api'
 import { AskWalkthrough } from './agent/AskWalkthrough'
+import { EarlierQuestions } from './agent/EarlierQuestions'
 import { Browse } from './browse/Browse'
 import { listen } from './agent/events'
-import type { Coverage, Plan, RepositoryTree } from './generated/types'
+import type { AskedQuestion, CodeTarget, Coverage, Plan, RepositoryTree } from './generated/types'
 import { Explorer, fetchTree } from './layout/Explorer'
 import { Layout } from './layout/Layout'
-import { fetchPlan, fetchReview, type ReviewInfo } from './review'
+import { fetchPlan, fetchProgress, fetchQuestions, fetchReview, type ReviewInfo, saveProgress } from './review'
 import { TargetNotice } from './TargetNotice'
 import { fetchCoverage } from './walkthrough/NotCovered'
 import { type Opening, type Pointing, type Position, Walkthrough } from './walkthrough/Walkthrough'
@@ -42,6 +43,7 @@ export function App() {
   const [categoriesSeq, setCategoriesSeq] = useState(0)
   // Where the walkthrough was when the reviewer switched to browsing, to come back to it.
   const [position, setPosition] = useState<Position | null>(null)
+  const [questions, setQuestions] = useState<AskedQuestion[]>([])
   const setMode = useCallback((next: Mode) => {
     setModeState(next)
     history.replaceState(null, '', `#${next}`)
@@ -55,9 +57,13 @@ export function App() {
 
   useEffect(() => {
     let live = true
-    Promise.all([fetchReview(), fetchPlan()]).then(
-      ([review, plan]) => {
+    // Progress and earlier questions are kept with the review (spec: review-session); a review opened again starts
+    // where it was left.
+    const progress = fetchProgress().catch(() => null)
+    Promise.all([fetchReview(), fetchPlan(), progress]).then(
+      ([review, plan, saved]) => {
         if (!live) return
+        if (saved !== null) setPosition({ section: saved.section - 1, step: saved.step - 1 })
         setLoad({ state: 'ready', review, plan })
         if (modeInAddress() === null) setModeState(plan !== null ? 'walkthrough' : 'browse')
       },
@@ -73,13 +79,23 @@ export function App() {
         () => undefined,
       )
     }
+    const refreshQuestions = () => {
+      fetchQuestions().then(
+        (found) => {
+          if (live) setQuestions(found)
+        },
+        () => undefined,
+      )
+    }
     refreshAgent()
+    refreshQuestions()
     let seq = 0
     const stop = listen(
       (event) => {
         if (event.type === 'plan') refreshPlan()
         else if (event.type === 'agent') refreshAgent()
         else if (event.type === 'categories') setCategoriesSeq((n) => n + 1)
+        else if (event.type === 'questions') refreshQuestions()
         else {
           // The agent points at code: the walkthrough's code view shows it, so a browsing reviewer is taken there.
           setPointing({ target: event.target, form: event.form, seq: ++seq })
@@ -124,6 +140,25 @@ export function App() {
     }
   }, [plan])
   const coverage = covered !== null && covered.plan === plan ? covered.coverage : null
+
+  // Save where the reviewer is, shortly after they stop moving.
+  const section = position?.section
+  const step = position?.step
+  useEffect(() => {
+    if (plan === null || section === undefined || step === undefined) return
+    const timer = setTimeout(() => {
+      saveProgress({ section: section + 1, step: step + 1 }).catch(() => undefined)
+    }, 400)
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [plan, section, step])
+
+  const showQuestion = (target: CodeTarget) => {
+    setPointing((previous) => ({ target, form: 'lines', seq: (previous?.seq ?? 0) + 1 }))
+    setMode('walkthrough')
+  }
+  const earlier = <EarlierQuestions questions={questions} onShow={plan === null ? null : showQuestion} />
   return (
     <div className="app">
       <header className="topbar">
@@ -206,6 +241,7 @@ export function App() {
                 onFile={setCurrentFile}
                 start={position}
                 onPosition={setPosition}
+                extra={earlier}
               />
             )}
           </>
@@ -213,13 +249,16 @@ export function App() {
         outlineInto={setOutlineSlot}
         outline={
           mode === 'browse' && load.state === 'ready' ? (
-            <BrowsePanel
-              plan={plan}
-              style={load.review.style}
-              onOpen={() => {
-                setMode('walkthrough')
-              }}
-            />
+            <>
+              <BrowsePanel
+                plan={plan}
+                style={load.review.style}
+                onOpen={() => {
+                  setMode('walkthrough')
+                }}
+              />
+              {earlier}
+            </>
           ) : plan === null ? (
             <p className="notice">The outline of the walkthrough appears here.</p>
           ) : null

@@ -500,3 +500,39 @@ def test_asking_again_says_the_plan_is_replaced(target: ReviewTarget, fake_claud
     api.put("/api/plan", json=SAMPLE)
     api.post("/api/agent/request", json={"kind": "walkthrough"})
     assert "again; the new plan replaces the current one" in fake_claude.calls("--bg")[0]["argv"][-1]
+
+
+def test_questions_and_progress_survive_the_server(target: ReviewTarget, fake_claude: FakeClaude) -> None:
+    """spec: review-session, "A review survives its instance": the walkthrough, progress and earlier questions."""
+    session = fake_claude.add("aaaa1111")
+    api = client(target)
+    api.put("/api/agent/session", json={"session": session})
+    api.put("/api/plan", json=SAMPLE)
+    assert api.get("/api/questions").json() == []
+    assert api.get("/api/progress").json() is None
+    with terminal(api) as socket:
+        read_until(socket, "attached")
+        body = question(question="why\x1b[31m this?", position={"section": 1, "step": 2})
+        assert api.post("/api/agent/ask", json=body).status_code == 200
+        read_until(socket, "got b'\\r'")
+    refused = api.put("/api/progress", json={"section": 2, "step": 5})
+    assert (refused.status_code, refused.json()["problems"]) == (422, ["the walkthrough has no step 5 in section 2"])
+    assert api.put("/api/progress", json={"section": 1, "step": 3}).status_code == 200
+
+    again = client(target)  # a new server for the same review, as on the next day
+    (asked,) = again.get("/api/questions").json()
+    assert asked["question"] == "why[31m this?"  # what the session received: escape characters removed
+    assert asked["selection"] == body["selection"]
+    assert asked["position"] == {"section": 1, "step": 2}
+    assert again.get("/api/progress").json() == {"section": 1, "step": 3}
+    assert again.get("/api/plan").json()["sections"][0]["title"] == SAMPLE["sections"][0]["title"]
+
+
+def test_a_question_that_was_not_delivered_is_not_kept(target: ReviewTarget, fake_claude: FakeClaude) -> None:
+    session = fake_claude.add("aaaa1111", status="waiting")
+    api = client(target)
+    api.put("/api/agent/session", json={"session": session})
+    with terminal(api) as socket:
+        read_until(socket, "attached")
+        assert api.post("/api/agent/ask", json=question()).status_code == 409
+    assert api.get("/api/questions").json() == []

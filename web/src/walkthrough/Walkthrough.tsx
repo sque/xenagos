@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AskPrompt, type AskAt } from '../agent/AskPrompt'
 import { AskWalkthrough } from '../agent/AskWalkthrough'
@@ -53,6 +53,8 @@ export function Walkthrough(props: {
   start?: Position | null
   /** Told where the walkthrough is, so it can be opened there again. */
   onPosition?: (position: Position) => void
+  /** Drawn at the end of the outline. */
+  extra?: ReactNode
 }) {
   const { plan, pointing, opening, style } = props
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -312,6 +314,7 @@ export function Walkthrough(props: {
               />
             )}
             <AskWalkthrough again style={style} narratedWith={plan.style?.name ?? null} />
+            {props.extra}
           </>,
           props.outlineSlot,
         )}

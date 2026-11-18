@@ -121,6 +121,16 @@ class Question(Model):
     position: Position | None = None
 
 
+class AskedQuestion(Model):
+    """A question the reviewer asked, kept with the review (spec: review-session, "A review survives its instance").
+    The answer is in the agent session's conversation."""
+
+    question: str = Field(description="The question as the session received it: its visible text.")
+    selection: Annotated[CodeSelection | ElementSelection, Field(discriminator="kind")]
+    position: Position | None = None
+    asked: float = Field(description="When it was asked, in seconds since the epoch.")
+
+
 class AgentRequest(Model):
     """A fixed request the reviewer sends with a control in the viewer."""
 

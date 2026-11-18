@@ -3,7 +3,12 @@
 
 import type { Show } from '../generated/types'
 
-export type ServerEvent = { type: 'plan' } | { type: 'agent' } | { type: 'categories' } | ({ type: 'show' } & Show)
+export type ServerEvent =
+  | { type: 'plan' }
+  | { type: 'agent' }
+  | { type: 'categories' }
+  | { type: 'questions' }
+  | ({ type: 'show' } & Show)
 
 const RETRY_MS = [500, 1000, 2000, 5000]
 

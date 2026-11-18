@@ -104,6 +104,55 @@
       "title": "AgentStatus",
       "type": "object"
     },
+    "AskedQuestion": {
+      "additionalProperties": false,
+      "description": "A question the reviewer asked, kept with the review (spec: review-session, \"A review survives its instance\").\nThe answer is in the agent session's conversation.",
+      "properties": {
+        "asked": {
+          "description": "When it was asked, in seconds since the epoch.",
+          "type": "number"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Position"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "question": {
+          "description": "The question as the session received it: its visible text.",
+          "type": "string"
+        },
+        "selection": {
+          "discriminator": {
+            "mapping": {
+              "code": "#/$defs/CodeSelection",
+              "element": "#/$defs/ElementSelection"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CodeSelection"
+            },
+            {
+              "$ref": "#/$defs/ElementSelection"
+            }
+          ]
+        }
+      },
+      "required": [
+        "question",
+        "selection",
+        "asked"
+      ],
+      "title": "AskedQuestion",
+      "type": "object"
+    },
     "BranchMoved": {
       "additionalProperties": false,
       "properties": {

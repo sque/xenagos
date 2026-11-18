@@ -18,10 +18,11 @@ from starlette.types import Scope
 
 from xenagos import __version__, claude, config, voice
 from xenagos.access import Access, AccessControl
-from xenagos.agent import Agent, AgentError, AgentSettings
+from xenagos.agent import Agent, AgentError, AgentSettings, visible_text
 from xenagos.api import (
     AgentRequest,
     AgentStatus,
+    AskedQuestion,
     BranchMoved,
     CategoryChange,
     ChangedFile,
@@ -30,6 +31,7 @@ from xenagos.api import (
     Delivery,
     FileView,
     PlanRejection,
+    Position,
     Question,
     RepositoryTree,
     ReviewInfo,
@@ -372,9 +374,35 @@ def create_app(
     @app.post("/api/agent/ask")
     async def ask(question: Question) -> Delivery:
         try:
-            return await agent.deliver(agent.question(question))
+            delivery = await agent.deliver(agent.question(question))
         except AgentError as error:
             raise HTTPException(error.status, str(error)) from error
+        asked = AskedQuestion(
+            question=visible_text(question.question),
+            selection=question.selection,
+            position=question.position,
+            asked=time.time(),
+        )
+        await asyncio.to_thread(state.record_question, asked)
+        events.publish({"type": "questions"})
+        return delivery
+
+    @app.get("/api/questions")
+    def questions() -> list[AskedQuestion]:
+        """The questions asked in this review, oldest first; their answers are in the session's conversation."""
+        return state.questions
+
+    @app.get("/api/progress")
+    def progress() -> Position | None:
+        return state.progress
+
+    @app.put("/api/progress", responses={422: {"model": PlanRejection}})
+    def set_progress(position: Position) -> Any:
+        try:
+            state.set_progress(position)
+        except PlanRejected as rejected:
+            return rejection(rejected)
+        return position
 
     @app.post("/api/agent/request")
     async def request(request: AgentRequest) -> Delivery:

@@ -1,5 +1,5 @@
 import type { FileSides } from './codeview/codeView'
-import type { ChangedFile, CommitInfo, FileView, Plan, ReviewInfo } from './generated/types'
+import type { AskedQuestion, ChangedFile, CommitInfo, FileView, Plan, Position, ReviewInfo } from './generated/types'
 
 export type { ReviewInfo }
 
@@ -48,3 +48,21 @@ export async function setCategory(path: string, category: Category | null): Prom
 }
 
 export type Category = ChangedFile['category']
+
+/** Where the reviewer last was in the walkthrough, counted from 1; null when never saved. */
+export async function fetchProgress(): Promise<Position | null> {
+  return (await getJson('/api/progress')) as Position | null
+}
+
+export async function saveProgress(position: Position): Promise<void> {
+  const response = await fetch('/api/progress', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(position),
+  })
+  if (!response.ok) throw new Error(`the review server answered ${String(response.status)}`)
+}
+
+export async function fetchQuestions(): Promise<AskedQuestion[]> {
+  return (await getJson('/api/questions')) as AskedQuestion[]
+}

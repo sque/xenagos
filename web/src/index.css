@@ -262,3 +262,12 @@ button { font: inherit; color: inherit; }
 .browsepanel { font-size: 0.9rem; }
 .browsepanel p { margin: 0 0 0.6rem; }
 button.primary { padding: 0.45rem 1rem; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+/* Earlier questions (spec: review-session, "A review survives its instance"). */
+.questions { margin: 0.6rem 0; padding-top: 0.5rem; border-top: 1px solid var(--line); font-size: 0.85rem; }
+.questions summary { cursor: pointer; font-weight: 600; }
+.questions .count { font-weight: 400; color: var(--muted); }
+.questions .hint { margin: 0.2rem 0; color: var(--muted); font-size: 0.75rem; }
+.questions ol { list-style: none; margin: 0; padding: 0; }
+.questions button { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; }
+.questions .where { font: 11px ui-monospace, monospace; color: var(--muted); }
+.questions .text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

@@ -200,3 +200,24 @@ class Coverage(Model):
     categories: list[CategoryCoverage]
     hunks: int = Field(description="How many hunks no section claims.")
     files: int = Field(description="How many files have a hunk no section claims.")
+
+
+class ChangedEntry(Model):
+    """A changed file as the repository explorer marks it."""
+
+    path: str = Field(description="Head path, or base path for a deleted file.")
+    old_path: str | None
+    status: Literal["added", "modified", "deleted", "renamed", "copied", "type-changed"]
+    binary: bool
+    category: Category
+    covered: Literal["all", "partly", "none"] | None = Field(
+        description="How many of the file's hunks the walkthrough claims; null when there is no walkthrough."
+    )
+
+
+class RepositoryTree(Model):
+    """The repository explorer's data (spec: repository-explorer)."""
+
+    files: list[str] = Field(description="Every file at the head, with deleted files added back; sorted.")
+    changed: list[ChangedEntry]
+    visited: list[str] = Field(description="Files some step of the walkthrough targets.")

@@ -20,6 +20,7 @@ from xenagos.files import RevisionFiles
 from xenagos.plan import CodeTarget, Plan, Section, StyleRef
 from xenagos.store import ReviewStore
 from xenagos.target import ReviewTarget
+from xenagos.tree import head_files
 
 
 class PlanRejected(Exception):
@@ -47,6 +48,10 @@ class Review:
     @cached_property
     def changes(self) -> list[FileChange]:
         return changes(self.target.repo, self.target.base, self.target.head)
+
+    @cached_property
+    def head_files(self) -> list[str]:
+        return head_files(self.target.repo, self.target.head)
 
     @cached_property
     def categories(self) -> dict[str, Category]:

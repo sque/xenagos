@@ -3,8 +3,8 @@ import { AgentPane } from './agent/AgentPane'
 import { type AgentStatus, fetchAgent } from './agent/api'
 import { AskWalkthrough } from './agent/AskWalkthrough'
 import { listen } from './agent/events'
-import type { Coverage, Plan } from './generated/types'
-import { Explorer } from './layout/Explorer'
+import type { Coverage, Plan, RepositoryTree } from './generated/types'
+import { Explorer, fetchTree } from './layout/Explorer'
 import { Layout } from './layout/Layout'
 import { fetchPlan, fetchReview, type ReviewInfo } from './review'
 import { fetchCoverage } from './walkthrough/NotCovered'
@@ -26,6 +26,7 @@ export function App() {
   const [opening, setOpening] = useState<Opening | null>(null)
   const [explorerOpen, setExplorerOpen] = useState(false)
   const [covered, setCovered] = useState<{ plan: Plan; coverage: Coverage | null } | null>(null)
+  const [tree, setTree] = useState<{ tree: RepositoryTree | null; error: string | null }>({ tree: null, error: null })
 
   const refreshAgent = useCallback(() => {
     fetchAgent().then(setAgent, (error: unknown) => {
@@ -72,16 +73,26 @@ export function App() {
 
   const plan = load.state === 'ready' ? load.plan : null
 
-  // The not-covered list follows the plan: a new plan may claim other hunks.
+  // The not-covered list and the explorer's marks follow the plan: a new plan may claim other hunks and visit
+  // other files.
   useEffect(() => {
-    if (plan === null) return
     let live = true
-    fetchCoverage().then(
-      (coverage) => {
-        if (live) setCovered({ plan, coverage })
+    fetchTree().then(
+      (found) => {
+        if (live) setTree({ tree: found, error: null })
       },
-      () => undefined,
+      (error: unknown) => {
+        if (live) setTree((previous) => ({ ...previous, error: message(error) }))
+      },
     )
+    if (plan !== null) {
+      fetchCoverage().then(
+        (coverage) => {
+          if (live) setCovered({ plan, coverage })
+        },
+        () => undefined,
+      )
+    }
     return () => {
       live = false
     }
@@ -107,6 +118,8 @@ export function App() {
         explorerOpen={explorerOpen}
         explorer={
           <Explorer
+            tree={tree.tree}
+            error={tree.error}
             current={currentFile}
             onOpen={
               plan === null

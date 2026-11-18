@@ -27,10 +27,14 @@ const routes: Record<string, unknown> = {
   '/api/review': review,
   '/api/plan': plan,
   '/api/agent': { state: 'none' },
-  '/api/changes': [
-    { path: 'a.py', oldPath: null, status: 'modified', binary: false, hunks: [] },
-    { path: 'gone.py', oldPath: null, status: 'deleted', binary: false, hunks: [] },
-  ],
+  '/api/tree': {
+    files: ['a.py', 'gone.py', 'z.py'],
+    changed: [
+      { path: 'a.py', oldPath: null, status: 'modified', binary: false, category: 'code', covered: 'all' },
+      { path: 'gone.py', oldPath: null, status: 'deleted', binary: false, category: 'code', covered: 'none' },
+    ],
+    visited: ['a.py'],
+  },
   '/api/file?path=a.py': { path: 'a.py', oldPath: null, status: 'modified', binary: false, base: text, head: text.replace('line_11 = 10', 'line_11 = 99') },
 }
 
@@ -126,7 +130,7 @@ test('below 1100 wide the explorer folds away and opens over the code on request
   await vi.waitFor(() => {
     expect(box('.explorer').width).toBeGreaterThan(200)
   })
-  expect(screen.getByText('gone.py')).toBeDefined()
+  expect(document.querySelector('.tree li[data-path="gone.py"]')?.textContent).toContain('gone.py')
 })
 
 test('the outline names the style the walkthrough was narrated in and asks for new wording', async () => {

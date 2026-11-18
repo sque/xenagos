@@ -137,6 +137,74 @@
       "title": "CategoryCoverage",
       "type": "object"
     },
+    "ChangedEntry": {
+      "additionalProperties": false,
+      "description": "A changed file as the repository explorer marks it.",
+      "properties": {
+        "binary": {
+          "type": "boolean"
+        },
+        "category": {
+          "enum": [
+            "code",
+            "tests",
+            "generated"
+          ],
+          "type": "string"
+        },
+        "covered": {
+          "anyOf": [
+            {
+              "enum": [
+                "all",
+                "partly",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How many of the file's hunks the walkthrough claims; null when there is no walkthrough."
+        },
+        "oldPath": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "description": "Head path, or base path for a deleted file.",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "renamed",
+            "copied",
+            "type-changed"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "oldPath",
+        "status",
+        "binary",
+        "category",
+        "covered"
+      ],
+      "title": "ChangedEntry",
+      "type": "object"
+    },
     "ChangedFile": {
       "additionalProperties": false,
       "description": "A file the change touches, as the diff of the pinned revisions has it.",
@@ -611,6 +679,39 @@
         "selection"
       ],
       "title": "Question",
+      "type": "object"
+    },
+    "RepositoryTree": {
+      "additionalProperties": false,
+      "description": "The repository explorer's data (spec: repository-explorer).",
+      "properties": {
+        "changed": {
+          "items": {
+            "$ref": "#/$defs/ChangedEntry"
+          },
+          "type": "array"
+        },
+        "files": {
+          "description": "Every file at the head, with deleted files added back; sorted.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "visited": {
+          "description": "Files some step of the walkthrough targets.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "files",
+        "changed",
+        "visited"
+      ],
+      "title": "RepositoryTree",
       "type": "object"
     },
     "ReviewInfo": {

@@ -57,7 +57,7 @@ const routes: Record<string, unknown> = {
   '/api/plan': plan,
   '/api/coverage': coverage,
   '/api/agent': { state: 'none' },
-  '/api/changes': [],
+  '/api/tree': { files: ['a.py', 'b.py'], changed: [], visited: ['a.py'] },
   '/api/file?path=a.py': { path: 'a.py', oldPath: null, status: 'modified', binary: false, base: a, head: a.replace('a_10 = 9', 'a_10 = 99') },
   '/api/file?path=b.py': { path: 'b.py', oldPath: null, status: 'modified', binary: false, base: b, head: bHead },
 }

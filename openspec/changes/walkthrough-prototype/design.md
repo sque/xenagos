@@ -194,7 +194,10 @@ walkthrough mode as an author driving an editor, and was chosen by the author.
   change / next change" buttons in walkthrough mode: they would compete with step navigation, and the ticks and the
   explorer already answer "where else did this file change". Browse mode is the place for change-by-change reading.
 - **Explorer data**: the file list at the head from git, the change status per path from the diff, deleted paths
-  added back, visited paths and covered hunks from the plan.
+  added back, visited paths and covered hunks from the plan (`GET /api/tree`). As built: the narrow view also keeps
+  the file on screen, so a file the agent points at with `xen show` is never hidden; a chain of folders that each
+  hold one folder is drawn as one row (`server/src/xenagos/`); only changed files get a category, so an unchanged
+  lock file is not dimmed; changed files no section covers are listed by name under the tree, as in the mockup.
 - **What "A" had that "B" drops**: a section's hunks shown together as one block. The outline's steps replace it.
   A "section diff" toggle in the code header is a possible later addition.
 - **Transport** is icons only: previous step, pause or resume, next step, replay. Previous and next duplicate

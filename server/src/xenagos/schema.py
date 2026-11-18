@@ -18,6 +18,7 @@ from xenagos.api import (
     FileView,
     PlanRejection,
     Question,
+    RepositoryTree,
     ReviewInfo,
     SessionChoiceItem,
     Show,
@@ -40,6 +41,7 @@ def export() -> dict[str, Any]:
             (SessionChoiceItem, "serialization"),
             (ChangedFile, "serialization"),
             (Coverage, "serialization"),
+            (RepositoryTree, "serialization"),
         ],
         title="xenagos",
     )

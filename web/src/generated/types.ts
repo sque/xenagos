@@ -94,6 +94,26 @@ export interface HunkInfo {
   id: string;
 }
 /**
+ * A changed file as the repository explorer marks it.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "ChangedEntry".
+ */
+export interface ChangedEntry {
+  binary: boolean;
+  category: "code" | "tests" | "generated";
+  /**
+   * How many of the file's hunks the walkthrough claims; null when there is no walkthrough.
+   */
+  covered: ("all" | "partly" | "none") | null;
+  oldPath: string | null;
+  /**
+   * Head path, or base path for a deleted file.
+   */
+  path: string;
+  status: "added" | "modified" | "deleted" | "renamed" | "copied" | "type-changed";
+}
+/**
  * A file the change touches, as the diff of the pinned revisions has it.
  *
  * This interface was referenced by `Root`'s JSON-Schema
@@ -336,6 +356,23 @@ export interface Question {
   position?: Position | null;
   question: string;
   selection: CodeSelection | ElementSelection;
+}
+/**
+ * The repository explorer's data (spec: repository-explorer).
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "RepositoryTree".
+ */
+export interface RepositoryTree {
+  changed: ChangedEntry[];
+  /**
+   * Every file at the head, with deleted files added back; sorted.
+   */
+  files: string[];
+  /**
+   * Files some step of the walkthrough targets.
+   */
+  visited: string[];
 }
 /**
  * This interface was referenced by `Root`'s JSON-Schema

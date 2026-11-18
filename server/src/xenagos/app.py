@@ -28,6 +28,7 @@ from xenagos.api import (
     FileView,
     PlanRejection,
     Question,
+    RepositoryTree,
     ReviewInfo,
     SessionChoice,
     SessionChoiceItem,
@@ -45,6 +46,7 @@ from xenagos.review import PlanRejected, Review, without_narration
 from xenagos.store import ReviewStore
 from xenagos.target import ReviewTarget
 from xenagos.terminal import Terminal
+from xenagos.tree import repository_tree
 
 VIEWER_MISSING = "The viewer is not built. Run `make web` in the xenagos repository, or install a built package."
 
@@ -189,6 +191,11 @@ def create_app(
         if state.plan is None:
             raise HTTPException(404, "this review has no walkthrough yet")
         return not_covered(state.plan, state.changes, state.categories)
+
+    @app.get("/api/tree")
+    def tree() -> RepositoryTree:
+        """The repository at the head with the change, coverage and visited files marked."""
+        return repository_tree(state.head_files, state.changes, state.categories, state.plan)
 
     @app.get("/api/file")
     def file(path: str) -> FileView:

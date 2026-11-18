@@ -2,7 +2,14 @@
 // Code's own interface when the session can be shown, and otherwise says why the pane is empty.
 
 import { useEffect, useRef, useState } from 'react'
-import { type AgentStatus, continueSession, startSession } from './api'
+import {
+  type AgentStatus,
+  continueSession,
+  fetchSessions,
+  replaceSession,
+  type SessionChoiceItem,
+  startSession,
+} from './api'
 import { AgentTerminal, type TerminalEnd } from './terminal'
 
 export function AgentPane({
@@ -15,6 +22,7 @@ export function AgentPane({
   onStatus: (status: AgentStatus) => void
 }) {
   const attachable = status?.state === 'attachable'
+  const [replacing, setReplacing] = useState(false)
   return (
     <aside className="agent" aria-label="Agent">
       <header className="agentbar">
@@ -22,7 +30,28 @@ export function AgentPane({
         {status !== null && state(status) !== null && (
           <span className={`activity ${state(status) ?? ''}`}>{label[state(status) ?? 'idle']}</span>
         )}
+        {status !== null && status.state !== 'none' && (
+          <button
+            type="button"
+            className="replace"
+            aria-expanded={replacing}
+            onClick={() => {
+              setReplacing(!replacing)
+            }}
+          >
+            Replace session
+          </button>
+        )}
       </header>
+      {replacing && status !== null && (
+        <Replace
+          current={status.session ?? null}
+          onDone={(next) => {
+            setReplacing(false)
+            onStatus(next)
+          }}
+        />
+      )}
       {attachable && status.shared === true && (
         <p className="agentnote shared" role="note">
           This session is also open in another terminal. The two share one display size, so it may look wrong here or
@@ -64,6 +93,71 @@ export function state(status: AgentStatus): State | null {
   if (status.activity === 'waiting') return 'waiting'
   if (status.activity === 'idle') return 'idle'
   return status.activity == null ? null : 'working'
+}
+
+/** Replace the review's session with another running background session or a new one (spec: review-session,
+ * "One agent session per review": only on the user's request). The old session keeps running. */
+function Replace({ current, onDone }: { current: string | null; onDone: (status: AgentStatus) => void }) {
+  const [sessions, setSessions] = useState<SessionChoiceItem[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    fetchSessions().then(
+      (found) => {
+        setSessions(found.filter((s) => s.session !== current))
+      },
+      (failure: unknown) => {
+        setError(failure instanceof Error ? failure.message : String(failure))
+      },
+    )
+  }, [current])
+  const choose = (action: Promise<AgentStatus>) => {
+    setBusy(true)
+    setError(null)
+    action.then(onDone, (failure: unknown) => {
+      setBusy(false)
+      setError(failure instanceof Error ? failure.message : String(failure))
+    })
+  }
+  return (
+    <div className="replacepanel" role="group" aria-label="Replace the review's session">
+      <p>The review's current session keeps running; it is just no longer this review's agent.</p>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => {
+          choose(startSession())
+        }}
+      >
+        Start a new session
+      </button>
+      {sessions === null && error === null && <p>Looking for running sessions…</p>}
+      {sessions?.length === 0 && <p>No other background session is running.</p>}
+      {sessions !== null && sessions.length > 0 && (
+        <ul>
+          {sessions.map((s) => (
+            <li key={s.session}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  choose(replaceSession(s.session))
+                }}
+              >
+                Use {s.name ?? s.session.slice(0, 8)}
+              </button>
+              {s.cwd !== null && <span className="cwd">{s.cwd}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {error !== null && (
+        <p className="agenterror" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
 }
 
 /** For a session the pane cannot show: continue that same session here, or start a new one. Either happens only

@@ -250,6 +250,23 @@ export interface ReviewInfo {
   id: string;
   label: string;
   repo: string;
+  /**
+   * The narration style a walkthrough is written in (`default` until styles exist).
+   */
+  style: string;
+}
+/**
+ * A Claude Code session the reviewer can make the review's agent.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "SessionChoiceItem".
+ */
+export interface SessionChoiceItem {
+  cwd: string | null;
+  kind: string;
+  name: string | null;
+  running: boolean;
+  session: string;
 }
 /**
  * Something the agent points at in the viewer.

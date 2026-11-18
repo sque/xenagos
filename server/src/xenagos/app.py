@@ -28,6 +28,7 @@ from xenagos.api import (
     Question,
     ReviewInfo,
     SessionChoice,
+    SessionChoiceItem,
     Show,
     ShowResult,
     StepAddition,
@@ -41,6 +42,8 @@ from xenagos.store import ReviewStore
 from xenagos.target import ReviewTarget
 from xenagos.terminal import Terminal
 
+NARRATION_STYLE = "default"
+"""Until narration styles are loaded from configuration (tasks 5.4, 5.5)."""
 VIEWER_MISSING = "The viewer is not built. Run `make web` in the xenagos repository, or install a built package."
 
 
@@ -141,6 +144,7 @@ def create_app(
             base=target.base,
             head=target.head,
             branch=target.branch,
+            style=NARRATION_STYLE,
         )
 
     @app.get("/api/file")
@@ -215,6 +219,19 @@ def create_app(
     @app.get("/api/agent")
     def agent_status() -> AgentStatus:
         return agent.status()
+
+    @app.get("/api/agent/sessions")
+    def agent_sessions() -> list[SessionChoiceItem]:
+        """Sessions that can replace the review's: background sessions that run, newest first."""
+        try:
+            found = claude.sessions()
+        except claude.ClaudeError as error:
+            raise HTTPException(502, str(error)) from error
+        return [
+            SessionChoiceItem(session=s.session_id, name=s.name, kind=s.kind, running=s.running, cwd=s.cwd)
+            for s in reversed(found)
+            if s.kind == "background" and s.running
+        ]
 
     @app.put("/api/agent/session")
     def choose_session(choice: SessionChoice) -> AgentStatus:

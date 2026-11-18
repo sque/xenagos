@@ -24,6 +24,17 @@ class ReviewInfo(Model):
     base: str
     head: str
     branch: str | None
+    style: str = Field(description="The narration style a walkthrough is written in (`default` until styles exist).")
+
+
+class SessionChoiceItem(Model):
+    """A Claude Code session the reviewer can make the review's agent."""
+
+    session: str
+    name: str | None
+    kind: str
+    running: bool
+    cwd: str | None
 
 
 class FileView(Model):

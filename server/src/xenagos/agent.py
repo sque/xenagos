@@ -301,9 +301,10 @@ class Agent:
     def request(self, request: AgentRequest) -> str:
         rid = self.review_id
         if request.kind == "walkthrough":
+            again = " again; the new plan replaces the current one" if self.review.plan is not None else ""
             return (
-                f"Please write the walkthrough for xenagos review {rid}. Read the guide with `xen guide`, then "
-                f"submit the plan with `xen plan submit --review {rid} <file>`."
+                f"Please write the walkthrough for xenagos review {rid}{again}. Read the guide with `xen guide`, "
+                f"then submit the plan with `xen plan submit --review {rid} <file>`."
             )
         if request.kind == "narration":
             if self.review.plan is None:

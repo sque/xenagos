@@ -478,3 +478,23 @@ def test_another_terminal_showing_the_session_is_noticed() -> None:
     assert claude.attached_elsewhere(session, own={11}, running=running) is True
     assert claude.attached_elsewhere(session, own={10}, running=running) is True
     assert claude.attached_elsewhere(session, own=set(), running=running[2:]) is False
+
+
+# Replacing the review's session (task 7.10) and asking again (7.9)
+
+
+def test_sessions_that_can_replace_the_reviews(target: ReviewTarget, fake_claude: FakeClaude) -> None:
+    fake_claude.add("aaaa1111", name="older")
+    fake_claude.add("bbbb2222", name="newer")
+    fake_claude.add("cccc3333", kind="interactive")
+    fake_claude.add("dddd4444", running=False)
+    listed = client(target).get("/api/agent/sessions").json()
+    assert [row["name"] for row in listed] == ["newer", "older"]
+
+
+def test_asking_again_says_the_plan_is_replaced(target: ReviewTarget, fake_claude: FakeClaude) -> None:
+    api = client(target)
+    assert api.get("/api/review").json()["style"] == "default"
+    api.put("/api/plan", json=SAMPLE)
+    api.post("/api/agent/request", json={"kind": "walkthrough"})
+    assert "again; the new plan replaces the current one" in fake_claude.calls("--bg")[0]["argv"][-1]

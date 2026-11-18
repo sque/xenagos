@@ -88,13 +88,13 @@ def _end_on_terminate(signum: int, frame: FrameType | None) -> None:
     raise SystemExit(0)
 
 
-def serve(target: ReviewTarget, port: int, open_browser: bool, session: str | None = None) -> None:
+def serve(target: ReviewTarget, port: int, open_browser: bool, session: claude.Session | None = None) -> None:
     """Serve the review in the foreground, or present the server already running for it. `session` becomes the
     review's agent session, replacing any it had: naming one is the user's own request."""
     store = ReviewStore(target.review_id)
     store.save_target(target)
     if session is not None:
-        store.set_session(session)
+        store.set_session(session.session_id, session.name, session.cwd)
     sock = listen_on_loopback(port)
     entry = registry.new_entry(target, sock.getsockname()[1])
     existing = registry.claim(entry)
@@ -102,7 +102,7 @@ def serve(target: ReviewTarget, port: int, open_browser: bool, session: str | No
         sock.close()
         print(f"Already open: {existing.label} ({existing.review_id})", flush=True)
         if session is not None:
-            call(existing, "PUT", "/api/agent/session", {"session": session, "replace": True})
+            call(existing, "PUT", "/api/agent/session", {"session": session.session_id, "replace": True})
         present(existing, open_browser)
         return
     try:
@@ -135,11 +135,11 @@ def resolve_target(args: argparse.Namespace) -> ReviewTarget:
         raise CommandError(str(error)) from error
 
 
-def named_session(reference: str | None) -> str | None:
+def named_session(reference: str | None) -> claude.Session | None:
     if reference is None:
         return None
     try:
-        return claude.resolve(reference).session_id
+        return claude.resolve(reference)
     except ClaudeError as error:
         raise CommandError(str(error)) from error
 
@@ -158,14 +158,28 @@ def cmd_list(argv: Sequence[str]) -> int:
         print("No open reviews.")
         return 0
     rows = [("REVIEW", "TARGET", "COMMITS", "ADDRESS", "AGENT", "REPOSITORY")]
+    saved_by_id = {e.review_id: ReviewStore(e.review_id).load() for e in entries}
+    names = _session_names([s.session for s in saved_by_id.values() if s is not None and not s.session_name])
     for e in entries:
-        saved = ReviewStore(e.review_id).load()
-        session = saved.session[:8] if saved is not None and saved.session else "-"
+        saved = saved_by_id[e.review_id]
+        session = "-"
+        if saved is not None and saved.session:
+            session = saved.session_name or names.get(saved.session) or saved.session[:8]
         rows.append((e.review_id, e.label, f"{e.base[:8]}..{e.head[:8]}", e.viewer_url, session, e.repo))
     widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]) - 1)]
     for row in rows:
         print("  ".join(cell.ljust(width) for cell, width in zip(row, widths, strict=False)) + "  " + row[-1])
     return 0
+
+
+def _session_names(sessions: list[str | None]) -> dict[str, str]:
+    """Names Claude Code knows for these sessions; nothing if it cannot be asked."""
+    if not any(sessions):
+        return {}
+    try:
+        return {s.session_id: s.name for s in claude.sessions() if s.name is not None}
+    except ClaudeError:
+        return {}
 
 
 def cmd_stop(argv: Sequence[str]) -> int:
@@ -252,7 +266,8 @@ def cmd_open(argv: Sequence[str]) -> int:
     parser.add_argument("--no-browser", action="store_true", help="only print the link; do not open a browser")
     args = parser.parse_args(argv)
     target = resolve_target(args)
-    session = named_session(args.session) or claude.opener_session()
+    named = named_session(args.session)
+    session = named.session_id if named is not None else claude.opener_session()
     store = ReviewStore(target.review_id)
     saved = store.save_target(target)
     live = registry.find(target.review_id)
@@ -262,7 +277,7 @@ def cmd_open(argv: Sequence[str]) -> int:
             if not _choose(entry, session):
                 print(_kept_notice(store.load() or saved), flush=True)
         elif saved.session is None:
-            store.set_session(session)
+            store.set_session(session, named.name if named else None, named.cwd if named else None)
         elif saved.session != session:
             print(_kept_notice(saved), flush=True)
     if entry is None:
@@ -284,7 +299,7 @@ def _choose(entry: Entry, session: str) -> bool:
 
 def _kept_notice(saved: SavedReview) -> str:
     return (
-        f"This review already has agent session {saved.session}, which stays its agent. "
+        f"This review already has agent session {saved.session_name or saved.session}, which stays its agent. "
         "The user can replace it from the viewer."
     )
 

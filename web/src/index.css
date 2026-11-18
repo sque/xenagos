@@ -100,3 +100,13 @@ button { font: inherit; color: inherit; }
 .activity.idle { color: #3fb950; border-color: #2ea043; }
 .activity.ended { color: #9198a1; }
 .agentnote.shared { padding: 0.4rem 0.75rem; border-bottom: 1px solid #30363d; color: #d29922; font-size: 0.8rem; }
+.askwalkthrough { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.75rem; margin-top: 1rem; }
+.askwalkthrough button { padding: 0.3rem 0.8rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); cursor: pointer; }
+.askwalkthrough .style { color: var(--muted); font-size: 0.8rem; }
+.askwalkthrough p { flex-basis: 100%; margin: 0.25rem 0 0; font-size: 0.85rem; }
+.agentbar .replace { margin-left: auto; padding: 0.1rem 0.5rem; border: 1px solid #30363d; border-radius: 6px; background: #21262d; font-size: 0.75rem; cursor: pointer; }
+.replacepanel { padding: 0.6rem 0.75rem; border-bottom: 1px solid #30363d; font-size: 0.85rem; }
+.replacepanel p { margin: 0 0 0.4rem; color: #9198a1; }
+.replacepanel ul { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.3rem; }
+.replacepanel button { padding: 0.2rem 0.7rem; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: inherit; cursor: pointer; }
+.replacepanel .cwd { margin-left: 0.5rem; color: #9198a1; font: 11px ui-monospace, monospace; }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AskPrompt, type AskAt } from '../agent/AskPrompt'
+import { AskWalkthrough } from '../agent/AskWalkthrough'
 import { CodeView, type FileSides, type Tick } from '../codeview/codeView'
 import { Overlay } from '../codeview/overlay'
 import type { Plan, Show } from '../generated/types'
@@ -18,7 +19,7 @@ interface Engine {
 /** Something the agent pointed at with `xen show`; `seq` tells two equal requests apart. */
 export type Pointing = Show & { seq: number }
 
-export function Walkthrough({ plan, pointing }: { plan: Plan; pointing: Pointing | null }) {
+export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: Pointing | null; style: string }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -126,6 +127,7 @@ export function Walkthrough({ plan, pointing }: { plan: Plan; pointing: Pointing
             </li>
           ))}
         </ol>
+        <AskWalkthrough again style={style} />
       </nav>
       <section className="stage">
         <div className="stagebar">

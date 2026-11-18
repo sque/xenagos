@@ -490,6 +490,10 @@
         },
         "repo": {
           "type": "string"
+        },
+        "style": {
+          "description": "The narration style a walkthrough is written in (`default` until styles exist).",
+          "type": "string"
         }
       },
       "required": [
@@ -498,7 +502,8 @@
         "label",
         "base",
         "head",
-        "branch"
+        "branch",
+        "style"
       ],
       "title": "ReviewInfo",
       "type": "object"
@@ -554,6 +559,50 @@
         "steps"
       ],
       "title": "Section",
+      "type": "object"
+    },
+    "SessionChoiceItem": {
+      "additionalProperties": false,
+      "description": "A Claude Code session the reviewer can make the review's agent.",
+      "properties": {
+        "cwd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "running": {
+          "type": "boolean"
+        },
+        "session": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "session",
+        "name",
+        "kind",
+        "running",
+        "cwd"
+      ],
+      "title": "SessionChoiceItem",
       "type": "object"
     },
     "Show": {

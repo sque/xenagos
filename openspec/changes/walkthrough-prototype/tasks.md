@@ -74,8 +74,8 @@
 - [ ] 7.6 Selection prompt on code and on visual elements; question and one-line reference pasted into the attach pseudo-terminal and submitted; control characters stripped and the reference built from validated values; fixed requests for walkthrough, re-narration and visual repair; verified in the browser idle and busy, by a question containing escape sequences, and by a visual that tries to send text or names an undeclared element
 - [x] 7.7 Session state in the viewer (working, idle, waiting, ended), offer to start a session when it ends, shared-display notice when the session is open elsewhere; verified in the browser for each
 - [ ] 7.9 Walkthrough mode with no plan: empty state, ask-for-walkthrough control, plan appears when valid, ask-again control; style name shown; verified in the browser from a review with no session
-- [ ] 7.10 Replace the review's session on the user's request, and keep the existing session when another one opens the same review; agent session name in `xen list`; verified by tests and in the browser
-- [ ] 7.8 Asking pauses playback and resume continues from the same step; verified in the browser
+- [x] 7.10 Replace the review's session on the user's request, and keep the existing session when another one opens the same review; agent session name in `xen list`; verified by tests and in the browser
+- [x] 7.8 Asking pauses playback and resume continues from the same step; verified in the browser
 
 ## 8. End to end
 

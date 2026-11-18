@@ -9,7 +9,17 @@ from typing import Any
 
 from pydantic.json_schema import models_json_schema
 
-from xenagos.api import AgentRequest, AgentStatus, Delivery, FileView, PlanRejection, Question, ReviewInfo, Show
+from xenagos.api import (
+    AgentRequest,
+    AgentStatus,
+    Delivery,
+    FileView,
+    PlanRejection,
+    Question,
+    ReviewInfo,
+    SessionChoiceItem,
+    Show,
+)
 from xenagos.plan import Plan
 
 
@@ -25,6 +35,7 @@ def export() -> dict[str, Any]:
             (AgentRequest, "validation"),
             (Delivery, "serialization"),
             (Show, "serialization"),
+            (SessionChoiceItem, "serialization"),
         ],
         title="xenagos",
     )

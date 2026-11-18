@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AgentPane } from './agent/AgentPane'
-import { type AgentStatus, fetchAgent, request } from './agent/api'
+import { type AgentStatus, fetchAgent } from './agent/api'
+import { AskWalkthrough } from './agent/AskWalkthrough'
 import { listen } from './agent/events'
 import type { Plan } from './generated/types'
 import { fetchPlan, fetchReview, type ReviewInfo } from './review'
@@ -75,8 +76,10 @@ export function App() {
               Could not load the review: {load.message}
             </p>
           )}
-          {load.state === 'ready' && load.plan === null && <NoWalkthrough />}
-          {load.state === 'ready' && load.plan !== null && <Walkthrough plan={load.plan} pointing={pointing} />}
+          {load.state === 'ready' && load.plan === null && <NoWalkthrough style={load.review.style} />}
+          {load.state === 'ready' && load.plan !== null && (
+            <Walkthrough plan={load.plan} pointing={pointing} style={load.review.style} />
+          )}
         </main>
         <AgentPane status={agent} onEnded={refreshAgent} onStatus={setAgent} />
       </div>
@@ -85,34 +88,11 @@ export function App() {
 }
 
 /** Walkthrough mode with no plan (spec: walkthrough-plan, "A walkthrough is asked for, not automatic"). */
-function NoWalkthrough() {
-  const [asked, setAsked] = useState<{ state: 'idle' | 'asking' | 'asked' } | { state: 'failed'; error: string }>({
-    state: 'idle',
-  })
+function NoWalkthrough({ style }: { style: string }) {
   return (
     <div className="notice empty">
       <p>This review has no walkthrough yet.</p>
-      <button
-        type="button"
-        disabled={asked.state === 'asking'}
-        onClick={() => {
-          setAsked({ state: 'asking' })
-          request({ kind: 'walkthrough' }).then(
-            () => {
-              setAsked({ state: 'asked' })
-            },
-            (error: unknown) => {
-              setAsked({ state: 'failed', error: message(error) })
-            },
-          )
-        }}
-      >
-        Ask the agent for a walkthrough
-      </button>
-      {asked.state === 'asked' && (
-        <p role="status">Asked. The walkthrough appears here once the agent submits one that passes the checks.</p>
-      )}
-      {asked.state === 'failed' && <p role="alert">{asked.error}</p>}
+      <AskWalkthrough again={false} style={style} />
     </div>
   )
 }

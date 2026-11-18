@@ -32,6 +32,7 @@ const review = {
   base: '1111111111aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   head: '2222222222bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
   branch: 'feature',
+  style: 'default',
 }
 
 function serve(routes: Record<string, Response>) {
@@ -138,4 +139,31 @@ test('offers a new session when the session has ended', async () => {
   render(<App />)
   expect(await screen.findByText('ended')).toBeDefined()
   expect(screen.getByText('Start a new session')).toBeDefined()
+})
+
+test('shows the narration style beside the request for a walkthrough', async () => {
+  serve({ '/api/review': json(review), '/api/agent': json({ state: 'none' }) })
+  render(<App />)
+  expect(await screen.findByText('Narration style: default')).toBeDefined()
+})
+
+test('replaces the review session with another one on request', async () => {
+  const fetch = serve({
+    '/api/review': json(review),
+    '/api/agent': json({ state: 'ended', session: 'old', name: 'old one', reason: 'The session has stopped.' }),
+    '/api/agent/sessions': json([
+      { session: 'old', name: 'old one', kind: 'background', running: true, cwd: '/r' },
+      { session: 'new', name: 'other one', kind: 'background', running: true, cwd: '/r' },
+    ]),
+    'PUT /api/agent/session': json({ state: 'ended', session: 'new', name: 'other one', reason: 'stopped' }),
+  })
+  render(<App />)
+  fireEvent.click(await screen.findByText('Replace session'))
+  expect(screen.queryByText('Use old one')).toBeNull()
+  fireEvent.click(await screen.findByText('Use other one'))
+  await vi.waitFor(() => {
+    const call = fetch.mock.calls.find(([url, init]) => url === '/api/agent/session' && init?.method === 'PUT')
+    expect(JSON.parse(call?.[1]?.body as string)).toEqual({ session: 'new', replace: true })
+  })
+  expect(await screen.findByText('other one')).toBeDefined()
 })

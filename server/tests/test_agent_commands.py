@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from tests.conftest import FakeClaude, FixtureRepo
-from xenagos import cli, registry
+from xenagos import claude, cli, registry
 from xenagos.access import SECRET_HEADER, Access
 from xenagos.app import IdlePolicy, create_app
 from xenagos.store import ReviewStore
@@ -123,6 +123,9 @@ def test_review_keeps_the_session_it_has(
     assert "already has agent session session-one, which stays its agent" in out
     assert ReviewStore(target.review_id).load().session == "session-one"  # type: ignore[union-attr]
     assert len(registry.live_entries()) == 1
+    store = ReviewStore(target.review_id)
+    store.set_session("session-one", "review repo feature", str(repo.path))
+    assert "review repo feature" in xen(capsys, "list")[1]
 
 
 @pytest.mark.usefixtures("reviews")
@@ -181,9 +184,10 @@ def test_named_session_becomes_the_agent(
     assert "no Claude Code session 'nobody'" in err
 
     served: list[str | None] = []
-    monkeypatch.setattr(cli, "serve", lambda t, port, open_browser, session: served.append(session))
+    monkeypatch.setattr(cli, "serve", lambda t, port, open_browser, session: served.append(session.session_id))
     assert xen(capsys, "-C", str(repo.path), "--session", "abcd1234")[0] == 0
     assert served == [session]
+    assert ReviewStore(target.review_id).load().session_name == "worker"  # type: ignore[union-attr]
 
 
 def test_person_naming_a_session_replaces_the_reviews(
@@ -202,7 +206,7 @@ def test_person_naming_a_session_replaces_the_reviews(
 
     monkeypatch.setattr(cli, "listen_on_loopback", stop_before_serving)
     with pytest.raises(SystemExit):
-        cli.serve(target, 0, open_browser=False, session=new)
+        cli.serve(target, 0, open_browser=False, session=claude.resolve(new))
     assert seen == [new]
 
 

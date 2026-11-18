@@ -133,13 +133,14 @@ test('below 1100 wide the explorer folds away and opens over the code on request
   expect(document.querySelector('.tree li[data-path="gone.py"]')?.textContent).toContain('gone.py')
 })
 
-test('the outline names the style the walkthrough was narrated in and asks for new wording', async () => {
+test('the outline names the style the walkthrough was narrated in; the menu asks for new wording', async () => {
   routes['/api/plan'] = { ...plan, style: { name: 'default', hash: 'abc' } }
   routes['/api/review'] = { ...review, style: 'terse' }
   try {
     await showAt(1440, 900)
     expect(screen.getByText('Narrated in default · active style: terse')).toBeDefined()
-    fireEvent.click(screen.getByText('Rewrite the narration'))
+    fireEvent.click(screen.getByRole('button', { name: 'Narration' }))
+    fireEvent.click(screen.getByText('Rewrite the narration in terse'))
     await vi.waitFor(() => {
       const calls = (fetch as unknown as { mock: { calls: [string, RequestInit | undefined][] } }).mock.calls
       const call = calls.find(([url]) => url === '/api/agent/request')

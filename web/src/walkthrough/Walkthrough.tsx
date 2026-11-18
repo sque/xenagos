@@ -9,6 +9,7 @@ import { fetchChanges, fetchFile } from '../review'
 import { type SectionSpot, VisualPane } from '../visual/VisualPane'
 import { Icon, type IconName } from './icons'
 import { hunkTarget, NotCovered } from './NotCovered'
+import { NarrationMenu } from './NarrationMenu'
 import { Outline } from './Outline'
 import { Player, type PlayerState } from './player'
 import { CodeStage } from './stage'
@@ -52,7 +53,7 @@ export function Walkthrough(props: {
   const [file, setFile] = useState<FileSides | null>(null)
   const [ticks, setTicks] = useState<Tick[]>([])
   const [voiceOn, setVoiceOn] = useState(props.voice.enabled && voiceAvailable(props.voice.provider))
-  const [speech] = useState<VoiceSetup>({ provider: props.voice.provider, name: props.voice.name, speed: props.voice.speed })
+  const [speech, setSpeech] = useState<VoiceSetup>({ provider: props.voice.provider, name: props.voice.name, speed: props.voice.speed })
   const [voiceProblem, setVoiceProblem] = useState<string | null>(null)
   const offMachine = useOffMachine(speech, props.voice.offMachine)
   const [disclosed, setDisclosed] = useState(() => wasDisclosed(props.reviewId))
@@ -325,13 +326,14 @@ export function Walkthrough(props: {
             <Control icon="next" label="Next step" keys="→ or L" disabled={!hasNext} onClick={() => player()?.next()} />
             <Control icon="replay" label="Replay step" keys="R" disabled={state.status === 'idle'} onClick={() => player()?.replay()} />
             <Control icon="caption" label="Hide caption" keys="C" onClick={() => engine.current?.stage.hideCaption()} />
-            <Control
-              icon={voiceOn ? 'voiceOn' : 'voiceOff'}
-              label={voiceOn ? 'Turn voice off' : 'Turn voice on'}
-              disabled={!voiceAvailable(speech.provider)}
-              onClick={() => {
-                setVoiceOn(!voiceOn)
-              }}
+            <NarrationMenu
+              voiceOn={voiceOn}
+              available={voiceAvailable(speech.provider)}
+              onVoice={setVoiceOn}
+              speech={speech}
+              onSpeech={setSpeech}
+              style={style}
+              narratedWith={plan.style?.name ?? null}
             />
           </div>
         </div>

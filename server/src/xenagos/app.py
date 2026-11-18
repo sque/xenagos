@@ -22,8 +22,10 @@ from xenagos.agent import Agent, AgentError, AgentSettings
 from xenagos.api import (
     AgentRequest,
     AgentStatus,
+    ChangedFile,
     Delivery,
     FileView,
+    HunkInfo,
     PlanRejection,
     Question,
     ReviewInfo,
@@ -149,6 +151,28 @@ def create_app(
             branch=target.branch,
             style=NARRATION_STYLE,
         )
+
+    @app.get("/api/changes")
+    def changed_files() -> list[ChangedFile]:
+        return [
+            ChangedFile(
+                path=c.path,
+                old_path=c.old_path,
+                status=c.status,
+                binary=c.binary,
+                hunks=[
+                    HunkInfo(
+                        id=h.id,
+                        base_start=h.base_start,
+                        base_count=h.base_count,
+                        head_start=h.head_start,
+                        head_count=h.head_count,
+                    )
+                    for h in c.hunks
+                ],
+            )
+            for c in state.changes
+        ]
 
     @app.get("/api/file")
     def file(path: str) -> FileView:

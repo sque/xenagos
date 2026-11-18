@@ -12,6 +12,7 @@ from pydantic.json_schema import models_json_schema
 from xenagos.api import (
     AgentRequest,
     AgentStatus,
+    ChangedFile,
     Delivery,
     FileView,
     PlanRejection,
@@ -36,6 +37,7 @@ def export() -> dict[str, Any]:
             (Delivery, "serialization"),
             (Show, "serialization"),
             (SessionChoiceItem, "serialization"),
+            (ChangedFile, "serialization"),
         ],
         title="xenagos",
     )

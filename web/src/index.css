@@ -42,8 +42,7 @@ button { font: inherit; color: inherit; }
 .target dl { display: flex; gap: 0.4rem; margin: 0; }
 .target dd { margin: 0 0.6rem 0 0; }
 .notice { padding: 1rem; }
-.walkthrough { flex: 1; min-height: 0; display: grid; grid-template-columns: 18rem 1fr; }
-.outline { overflow: auto; border-right: 1px solid var(--line); padding: 0.75rem; background: var(--panel); }
+.outline { flex: 0 0 var(--split, 45%); min-height: 0; overflow: auto; padding: 0.75rem; background: var(--panel); }
 .outline .orientation { color: var(--muted); margin: 0 0 0.75rem; }
 .outline ol { list-style: none; margin: 0; padding: 0; }
 .outline button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0.3rem 0.4rem; border-radius: 4px; cursor: pointer; }
@@ -52,14 +51,18 @@ button { font: inherit; color: inherit; }
 .outline .steps { margin: 0.2rem 0 0.4rem 0.8rem; font-size: 0.85rem; color: var(--muted); }
 .outline .steps li[aria-current] > button { color: var(--fg); background: color-mix(in srgb, var(--xen-spot) 18%, transparent); }
 .outline .role { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-right: 0.3rem; }
-.stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.stagebar { display: flex; align-items: center; gap: 1rem; padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--line); }
-.stagebar h2 { font-size: 1rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.stagebar { display: flex; align-items: center; gap: 1rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--line); }
+.stagebar .heading { flex: 1; min-width: 0; }
+.stagebar .heading h2 { display: inline; margin-right: 0.6rem; }
+.stagebar .explanation { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stagebar h2 { font-size: 1rem; margin: 0; }
 .stagebar .position { color: var(--muted); white-space: nowrap; }
 .transport { display: flex; gap: 0.2rem; margin-left: auto; }
 .icon { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); cursor: pointer; }
 .icon:disabled { opacity: 0.4; cursor: default; }
-.filebar { padding: 0.25rem 0.75rem; font: 12px ui-monospace, monospace; color: var(--muted); border-bottom: 1px solid var(--line); }
+.filebar { display: flex; gap: 0.75rem; padding: 0.3rem 0.75rem; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; }
+.filebar .filepath { font-family: ui-monospace, monospace; color: var(--fg); overflow: hidden; text-overflow: ellipsis; }
 .codepanel { position: relative; flex: 1; min-height: 0; }
 .scroller { position: absolute; inset: 0 10px 0 0; overflow: auto; }
 .ticks { position: absolute; top: 0; right: 0; bottom: 0; width: 10px; background: var(--panel); }
@@ -68,11 +71,8 @@ button { font: inherit; color: inherit; }
 .tick.deleted { background: var(--tick-deleted); }
 .tick.modified { background: var(--tick-modified); }
 :root { --terminal-bg: #0d1117; --terminal-fg: #e6edf3; }
-.workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(24rem, 38%); }
-.main { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.main > .walkthrough { flex: 1; }
 .empty button { margin: 0.25rem 0 0.5rem; padding: 0.35rem 0.8rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); cursor: pointer; }
-.agent { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--line); background: var(--terminal-bg); color: var(--terminal-fg); }
+.agent { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--terminal-bg); color: var(--terminal-fg); }
 .agentbar { display: flex; gap: 0.6rem; align-items: baseline; padding: 0.4rem 0.75rem; border-bottom: 1px solid #30363d; font-size: 0.85rem; }
 .agentname { font-weight: 600; }
 .activity { color: #9198a1; }
@@ -123,3 +123,29 @@ button { font: inherit; color: inherit; }
 .visualbroken { padding: 0.75rem; }
 .visualbroken p { margin: 0 0 0.5rem; }
 .visualbroken button { padding: 0.3rem 0.8rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); cursor: pointer; }
+/* Layout (design decision 5b): explorer, section, outline above agent. */
+.layout { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: 16rem minmax(0, 1fr) minmax(22rem, 28%); }
+.explorer { min-height: 0; overflow: auto; padding: 0.5rem 0.25rem; border-right: 1px solid var(--line); background: var(--panel); }
+.middle { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.right { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--line); }
+.divider { flex: 0 0 6px; cursor: row-resize; background: var(--line); touch-action: none; }
+.divider:hover, .divider:focus-visible { background: var(--accent); outline: none; }
+.agentslot { flex: 1; min-height: 0; display: flex; }
+.columnhead { margin: 0.25rem 0.5rem 0.5rem; font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+.files { list-style: none; margin: 0; padding: 0; }
+.files button { display: flex; width: 100%; gap: 0.5rem; justify-content: space-between; padding: 0.2rem 0.5rem; border: 0; border-radius: 4px; background: none; text-align: left; cursor: pointer; font: 13px ui-monospace, monospace; }
+.files button:disabled { cursor: default; }
+.files li[aria-current] button { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.files .path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.files .path.deleted { text-decoration: line-through; color: var(--tick-deleted); }
+.files .letter { font-weight: 600; }
+.files .letter.added { color: var(--tick-added); }
+.files .letter.deleted { color: var(--tick-deleted); }
+.files .letter.modified, .files .letter.renamed, .files .letter.copied, .files .letter.type-changed { color: var(--tick-modified); }
+.explorertoggle { display: none; padding: 0.2rem 0.6rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); cursor: pointer; }
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: minmax(0, 1fr) minmax(20rem, 40%); }
+  .explorer { display: none; }
+  .layout[data-explorer="open"] .explorer { display: block; position: absolute; inset: 0 auto 0 0; width: 18rem; z-index: 20; box-shadow: 4px 0 16px rgb(0 0 0 / 0.15); }
+  .explorertoggle { display: inline-block; }
+}

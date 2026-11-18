@@ -51,7 +51,7 @@
 ## 6. Walkthrough viewer (specs: walkthrough-narration, section-visuals, repository-explorer)
 
 - [x] 6.1 Mockups of browse mode and of walkthrough mode mid-step, reviewed by the user; layout "B" approved on 2026-11-13 and recorded in design.md decision 5b
-- [ ] 6.2 Three-column walkthrough layout from decision 5b with a draggable divider between outline and agent; verified in the browser at 1280 and 1440 wide
+- [x] 6.2 Three-column walkthrough layout from decision 5b with a draggable divider between outline and agent; verified in the browser at 1280 and 1440 wide
 - [x] 6.3 Whole-file code view on the virtualised diff component, lines not wrapped, horizontal scroll to a far target: unified diff fully expanded, deleted lines inline without a number, change ticks beside the scroll track, base content for steps that target the base revision; verified in the browser on a file with an added block, a deleted line and a far change
 - [ ] 6.4 Repository explorer: tree at the head with deleted files added back, change marks on files and folders, generated files de-emphasised, current-file highlight that reveals and follows the narrator, visited mark, changed-but-not-covered mark, narrow and whole views with hidden counts, open-file pauses playback; verified by tests on the fixture for the data and in the browser for each mark
 - [ ] 6.5 Header row and outline: section title, positions, one-line explanation with full text on request; outline with orientation, sections, current section's steps and their states, unchanged-code mark, jump on choose; verified in the browser

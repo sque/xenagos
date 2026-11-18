@@ -142,3 +142,21 @@ class VisualAddition(Model):
 class SessionChoice(Model):
     session: str = Field(description="Full session id.")
     replace: bool = False
+
+
+class HunkInfo(Model):
+    id: str
+    base_start: int
+    base_count: int
+    head_start: int
+    head_count: int
+
+
+class ChangedFile(Model):
+    """A file the change touches, as the diff of the pinned revisions has it."""
+
+    path: str = Field(description="Head path, or base path for a deleted file.")
+    old_path: str | None
+    status: Literal["added", "modified", "deleted", "renamed", "copied", "type-changed"]
+    binary: bool
+    hunks: list[HunkInfo]

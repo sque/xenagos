@@ -43,11 +43,17 @@ export function VisualFrame(props: {
 
   // A visual whose content changes is a new frame (the pane keys frames by content), so loading starts once.
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Time counts only while the page is visible: a visual in a background tab waits to be drawn.
+    let waited = 0
+    const timer = setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      waited += 500
+      if (waited < READY_TIMEOUT_MS) return
+      clearInterval(timer)
       setLoad((current) =>
         current.state === 'loading' ? { state: 'broken', reason: 'it did not finish loading' } : current,
       )
-    }, READY_TIMEOUT_MS)
+    }, 500)
     const receive = (event: MessageEvent) => {
       if (event.source !== frameRef.current?.contentWindow) return
       const data: unknown = event.data
@@ -68,7 +74,7 @@ export function VisualFrame(props: {
     }
     window.addEventListener('message', receive)
     return () => {
-      clearTimeout(timer)
+      clearInterval(timer)
       window.removeEventListener('message', receive)
     }
   }, [source, declared])

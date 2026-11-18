@@ -67,16 +67,25 @@ const HELPER = String.raw`
         post({ type: 'ready', missing: missing, height: document.documentElement.scrollHeight });
       };
       if (!document.querySelector('.mermaid')) { finish(); return; }
-      var script = document.createElement('script');
-      script.src = window.xenagosAssets + 'mermaid.min.js';
-      script.onload = function () {
-        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default' });
-        mermaid.run({ querySelector: '.mermaid' }).then(finish, function (error) {
-          post({ type: 'error', message: 'Mermaid: ' + (error && error.message || error) });
-        });
+      var load = function () {
+        var script = document.createElement('script');
+        script.src = window.xenagosAssets + 'mermaid.min.js';
+        script.onload = function () {
+          mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default' });
+          mermaid.run({ querySelector: '.mermaid' }).then(finish, function (error) {
+            post({ type: 'error', message: 'Mermaid: ' + (error && error.message || error) });
+          });
+        };
+        script.onerror = function () { post({ type: 'error', message: 'the Mermaid helper did not load' }); };
+        document.head.appendChild(script);
       };
-      script.onerror = function () { post({ type: 'error', message: 'the Mermaid helper did not load' }); };
-      document.head.appendChild(script);
+      // Mermaid sizes labels from the live layout; in a hidden or zero-width document it measures them wrong (seen
+      // live: a tab opened in the background drew empty, overlapping boxes). Draw once the frame can be seen.
+      var draw = function () {
+        if (document.hidden || document.body.clientWidth === 0) { setTimeout(draw, 200); return; }
+        document.fonts.ready.then(load);
+      };
+      draw();
     }
   };
 })();

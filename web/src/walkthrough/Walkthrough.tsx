@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AskPrompt, type AskAt } from '../agent/AskPrompt'
 import { AskWalkthrough } from '../agent/AskWalkthrough'
 import { CodeView, type FileSides, type Tick } from '../codeview/codeView'
@@ -20,7 +21,22 @@ interface Engine {
 /** Something the agent pointed at with `xen show`; `seq` tells two equal requests apart. */
 export type Pointing = Show & { seq: number }
 
-export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: Pointing | null; style: string }) {
+/** A file the reviewer chose in the explorer. */
+export interface Opening {
+  path: string
+  seq: number
+}
+
+export function Walkthrough(props: {
+  plan: Plan
+  pointing: Pointing | null
+  opening: Opening | null
+  style: string
+  /** Where the outline is drawn: the top of the right column (design decision 5b). */
+  outlineSlot: HTMLElement | null
+  onFile: (path: string) => void
+}) {
+  const { plan, pointing, opening, style } = props
   const scrollerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -31,6 +47,10 @@ export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: P
   const [voiceOn, setVoiceOn] = useState(BrowserVoice.available())
   const [askAt, setAskAt] = useState<AskAt | null>(null)
   const [visualSpot, setVisualSpot] = useState<SectionSpot | null>(null)
+  const onFileRef = useRef(props.onFile)
+  useEffect(() => {
+    onFileRef.current = props.onFile
+  })
 
   useEffect(() => {
     const scroller = scrollerRef.current
@@ -44,6 +64,7 @@ export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: P
     const stage = new CodeStage(view, overlay, fetchFile, panel, (shown) => {
       setFile(shown)
       setTicks(view.ticks())
+      onFileRef.current(shown.path)
     })
     stage.onVisual = (target, form) => {
       setVisualSpot(target === null ? null : { visual: target.visual, element: target.element, form })
@@ -123,43 +144,66 @@ export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: P
     if (pointing !== null) pointAtRef.current(pointing)
   }, [pointing])
 
+  // A file chosen in the explorer opens at its top; playback pauses (spec: repository-explorer).
+  useEffect(() => {
+    const current = engine.current
+    if (opening === null || current === null) return
+    current.player.pause()
+    pointer.current?.abort(new DOMException('replaced', 'AbortError'))
+    const controller = new AbortController()
+    pointer.current = controller
+    current.stage.spotlight(null, 'lines')
+    current.stage.caption(null, controller.signal).then(
+      () => current.stage.showFile(opening.path, controller.signal),
+      () => undefined,
+    )
+  }, [opening])
+
   const player = () => engine.current?.player
   const section = plan.sections[state.section]
   const steps = section?.steps ?? []
   const playing = state.status === 'playing'
 
   return (
-    <div className="walkthrough">
-      <nav className="outline" aria-label="Sections">
-        <p className="orientation">{plan.orientation.problem}</p>
-        <ol>
-          {plan.sections.map((s, i) => (
-            <li key={s.title} aria-current={i === state.section ? 'true' : undefined}>
-              <button type="button" onClick={() => player()?.play(i)}>
-                <span className="role">{s.role}</span> {s.title}
-              </button>
-              {i === state.section && (
-                <ol className="steps">
-                  {s.steps.map((step, j) => (
-                    <li key={j} aria-current={j === state.step && state.status !== 'idle' ? 'step' : undefined}>
-                      <button type="button" onClick={() => player()?.play(i, j)}>
-                        {step.narration}
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </li>
-          ))}
-        </ol>
-        <AskWalkthrough again style={style} />
-      </nav>
-      <section className="stage">
+    <section className="stage">
+      {props.outlineSlot !== null &&
+        createPortal(
+          <>
+            <p className="orientation">{plan.orientation.problem}</p>
+            <ol>
+              {plan.sections.map((s, i) => (
+                <li key={s.title} aria-current={i === state.section ? 'true' : undefined}>
+                  <button type="button" onClick={() => player()?.play(i)}>
+                    <span className="role">{s.role}</span> {s.title}
+                  </button>
+                  {i === state.section && (
+                    <ol className="steps">
+                      {s.steps.map((step, j) => (
+                        <li key={j} aria-current={j === state.step && state.status !== 'idle' ? 'step' : undefined}>
+                          <button type="button" onClick={() => player()?.play(i, j)}>
+                            {step.narration}
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </li>
+              ))}
+            </ol>
+            <AskWalkthrough again style={style} />
+          </>,
+          props.outlineSlot,
+        )}
         <div className="stagebar">
-          <h2>{section?.title}</h2>
-          <span className="position">
-            Section {state.section + 1} of {plan.sections.length} · Step {state.step + 1} of {steps.length}
-          </span>
+          <div className="heading">
+            <h2>{section?.title}</h2>
+            <span className="position">
+              Section {state.section + 1} of {plan.sections.length} · Step {state.step + 1} of {steps.length}
+            </span>
+            <p className="explanation" title={section?.explanation}>
+              {section?.explanation}
+            </p>
+          </div>
           <div className="transport">
             <Control icon="previous" label="Previous step" disabled={state.step === 0} onClick={() => player()?.previous()} />
             {playing ? (
@@ -213,7 +257,9 @@ export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: P
             }}
           />
         )}
-        <div className="filebar">{file?.path ?? ' '}</div>
+        <div className="filebar">
+          {file === null ? ' ' : <FileHeading file={file} changes={ticks.length} />}
+        </div>
         {askAt !== null && (
           <AskPrompt
             key={JSON.stringify(askAt.selection)}
@@ -238,8 +284,22 @@ export function Walkthrough({ plan, pointing, style }: { plan: Plan; pointing: P
             ))}
           </div>
         </div>
-      </section>
-    </div>
+    </section>
+  )
+}
+
+function FileHeading({ file, changes }: { file: FileSides; changes: number }) {
+  const text = file.head ?? file.base ?? ''
+  const lines = text === '' ? 0 : text.split('\n').length - (text.endsWith('\n') ? 1 : 0)
+  const what = file.head === null ? 'deleted file' : file.base === null ? 'new file' : 'whole file'
+  return (
+    <>
+      <span className="filepath">{file.path}</span>
+      <span className="filefacts">
+        {what} · {lines} line{lines === 1 ? '' : 's'}
+        {changes > 0 && ` · ${String(changes)} change${changes === 1 ? '' : 's'}`}
+      </span>
+    </>
   )
 }
 

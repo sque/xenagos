@@ -104,6 +104,55 @@
       "title": "AgentStatus",
       "type": "object"
     },
+    "ChangedFile": {
+      "additionalProperties": false,
+      "description": "A file the change touches, as the diff of the pinned revisions has it.",
+      "properties": {
+        "binary": {
+          "type": "boolean"
+        },
+        "hunks": {
+          "items": {
+            "$ref": "#/$defs/HunkInfo"
+          },
+          "type": "array"
+        },
+        "oldPath": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "description": "Head path, or base path for a deleted file.",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "renamed",
+            "copied",
+            "type-changed"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "oldPath",
+        "status",
+        "binary",
+        "hunks"
+      ],
+      "title": "ChangedFile",
+      "type": "object"
+    },
     "CodeSelection": {
       "additionalProperties": false,
       "description": "Lines the reviewer selected. In the unified view a selection can start on a deleted line and end on an added\none, so each end names its side.",
@@ -324,6 +373,35 @@
         "head"
       ],
       "title": "FileView",
+      "type": "object"
+    },
+    "HunkInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "baseCount": {
+          "type": "integer"
+        },
+        "baseStart": {
+          "type": "integer"
+        },
+        "headCount": {
+          "type": "integer"
+        },
+        "headStart": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "baseStart",
+        "baseCount",
+        "headStart",
+        "headCount"
+      ],
+      "title": "HunkInfo",
       "type": "object"
     },
     "Orientation": {

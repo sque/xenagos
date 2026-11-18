@@ -41,6 +41,33 @@ export interface AgentStatus {
   state: "none" | "attachable" | "not-shown" | "ended" | "unavailable";
 }
 /**
+ * A file the change touches, as the diff of the pinned revisions has it.
+ *
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "ChangedFile".
+ */
+export interface ChangedFile {
+  binary: boolean;
+  hunks: HunkInfo[];
+  oldPath: string | null;
+  /**
+   * Head path, or base path for a deleted file.
+   */
+  path: string;
+  status: "added" | "modified" | "deleted" | "renamed" | "copied" | "type-changed";
+}
+/**
+ * This interface was referenced by `Root`'s JSON-Schema
+ * via the `definition` "HunkInfo".
+ */
+export interface HunkInfo {
+  baseCount: number;
+  baseStart: number;
+  headCount: number;
+  headStart: number;
+  id: string;
+}
+/**
  * Lines the reviewer selected. In the unified view a selection can start on a deleted line and end on an added
  * one, so each end names its side.
  *

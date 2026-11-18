@@ -4,8 +4,10 @@ import { type AgentStatus, fetchAgent } from './agent/api'
 import { AskWalkthrough } from './agent/AskWalkthrough'
 import { listen } from './agent/events'
 import type { Plan } from './generated/types'
+import { Explorer } from './layout/Explorer'
+import { Layout } from './layout/Layout'
 import { fetchPlan, fetchReview, type ReviewInfo } from './review'
-import { type Pointing, Walkthrough } from './walkthrough/Walkthrough'
+import { type Opening, type Pointing, Walkthrough } from './walkthrough/Walkthrough'
 
 type Load =
   | { state: 'loading' }
@@ -18,6 +20,10 @@ export function App() {
   const [load, setLoad] = useState<Load>({ state: 'loading' })
   const [agent, setAgent] = useState<AgentStatus | null>(null)
   const [pointing, setPointing] = useState<Pointing | null>(null)
+  const [outlineSlot, setOutlineSlot] = useState<HTMLElement | null>(null)
+  const [currentFile, setCurrentFile] = useState<string | null>(null)
+  const [opening, setOpening] = useState<Opening | null>(null)
+  const [explorerOpen, setExplorerOpen] = useState(false)
 
   const refreshAgent = useCallback(() => {
     fetchAgent().then(setAgent, (error: unknown) => {
@@ -62,27 +68,63 @@ export function App() {
     }
   }, [refreshAgent])
 
+  const plan = load.state === 'ready' ? load.plan : null
   return (
     <div className="app">
       <header className="topbar">
+        <button
+          type="button"
+          className="explorertoggle"
+          aria-expanded={explorerOpen}
+          onClick={() => {
+            setExplorerOpen(!explorerOpen)
+          }}
+        >
+          Files
+        </button>
         <h1>xenagos</h1>
         {load.state === 'ready' && <ReviewHeader review={load.review} />}
       </header>
-      <div className="workspace">
-        <main className="main">
-          {load.state === 'loading' && <p className="notice">Loading the review…</p>}
-          {load.state === 'failed' && (
-            <p className="notice" role="alert">
-              Could not load the review: {load.message}
-            </p>
-          )}
-          {load.state === 'ready' && load.plan === null && <NoWalkthrough style={load.review.style} />}
-          {load.state === 'ready' && load.plan !== null && (
-            <Walkthrough plan={load.plan} pointing={pointing} style={load.review.style} />
-          )}
-        </main>
-        <AgentPane status={agent} onEnded={refreshAgent} onStatus={setAgent} />
-      </div>
+      <Layout
+        explorerOpen={explorerOpen}
+        explorer={
+          <Explorer
+            current={currentFile}
+            onOpen={
+              plan === null
+                ? null
+                : (path) => {
+                    setOpening((previous) => ({ path, seq: (previous?.seq ?? 0) + 1 }))
+                    setExplorerOpen(false)
+                  }
+            }
+          />
+        }
+        middle={
+          <>
+            {load.state === 'loading' && <p className="notice">Loading the review…</p>}
+            {load.state === 'failed' && (
+              <p className="notice" role="alert">
+                Could not load the review: {load.message}
+              </p>
+            )}
+            {load.state === 'ready' && plan === null && <NoWalkthrough style={load.review.style} />}
+            {load.state === 'ready' && plan !== null && (
+              <Walkthrough
+                plan={plan}
+                pointing={pointing}
+                opening={opening}
+                style={load.review.style}
+                outlineSlot={outlineSlot}
+                onFile={setCurrentFile}
+              />
+            )}
+          </>
+        }
+        outlineInto={setOutlineSlot}
+        outline={plan === null ? <p className="notice">The outline of the walkthrough appears here.</p> : null}
+        agent={<AgentPane status={agent} onEnded={refreshAgent} onStatus={setAgent} />}
+      />
     </div>
   )
 }

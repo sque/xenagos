@@ -125,3 +125,13 @@ def test_plan_with_format_errors_is_rejected(target: ReviewTarget) -> None:
 
 def accepted_form(plan: dict[str, Any], c: TestClient) -> Any:
     return c.put("/api/plan", json=plan).json()
+
+
+def test_changes_list_every_changed_file_with_its_hunks(target: ReviewTarget) -> None:
+    changes = client(target).get("/api/changes").json()
+    assert [(c["path"], c["status"]) for c in changes] == [
+        ("app.py", "modified"),
+        ("lib.py", "added"),
+        ("tests/test_app.py", "added"),
+    ]
+    assert changes[0]["hunks"] == [{"id": "app.py:h1", "baseStart": 1, "baseCount": 1, "headStart": 1, "headCount": 1}]

@@ -45,8 +45,8 @@
 - [x] 5.4a `agent_open`, `session.name` and `session.permission_mode` settings; verified by an agent-started review under each `agent_open` value and by a started session carrying the configured name and mode
 - [x] 5.5 Built-in default style (`style.md` with worked examples, `limits.toml`) from `default-style-draft.md` in this change, plus the `terse` style as a second built-in; verified by the user's approval of the draft recorded in design.md, and by the worked example passing its own limits
 - [x] 5.6 Narration checks: plain-text check always, plus the active style's limits, with step and limit named on rejection; verified by tests for markup, a line number under the default style, and the same text passing under a style with empty limits
-- [ ] 5.7 Authoring guide printed by `xen guide`, composed from format rules, section and step rules, the no-verdict rule and the active style; verified by generating a plan for the fixture from the guide alone and passing validation
-- [ ] 5.8 Re-narration through `xen plan get --without-narration` and `xen narration submit`, triggered by a control in the viewer, rejecting any change other than narration text, and recording style name and hash on the plan; verified by tests and by re-narrating the fixture walkthrough under a second style
+- [x] 5.7 Authoring guide printed by `xen guide`, composed from format rules, section and step rules, the no-verdict rule and the active style; verified by generating a plan for the fixture from the guide alone and passing validation
+- [x] 5.8 Re-narration through `xen plan get --without-narration` and `xen narration submit`, triggered by a control in the viewer, rejecting any change other than narration text, and recording style name and hash on the plan; verified by tests and by re-narrating the fixture walkthrough under a second style
 
 ## 6. Walkthrough viewer (specs: walkthrough-narration, section-visuals, repository-explorer)
 

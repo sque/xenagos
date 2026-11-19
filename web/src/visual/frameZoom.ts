@@ -5,7 +5,7 @@
 /** Runs inside the frame after the helper. Plain script: it is inlined into the document. */
 export const ZOOM = String.raw`
 (function () {
-  var MARGIN = 24, MIN = 0.1, MAX = 8, STEP = 1.25;
+  var MARGIN = 24, BAR = 36, MIN = 0.1, MAX = 8, STEP = 1.25;
   var stage = null, viewport = null;
   var scale = 1, x = 0, y = 0, natural = { w: 0, h: 0 };
   var fitted = true, fitScale = 1;
@@ -14,10 +14,11 @@ export const ZOOM = String.raw`
   }
   function fit() {
     var W = window.innerWidth, H = window.innerHeight;
-    scale = Math.min(1, (W - MARGIN) / natural.w, (H - MARGIN) / natural.h);
+    // The buttons take the bottom-right corner: keep the diagram above them.
+    scale = Math.max(0.01, Math.min(1, (W - MARGIN) / natural.w, (H - MARGIN - BAR) / natural.h));
     fitScale = scale;
     x = (W - natural.w * scale) / 2;
-    y = (H - natural.h * scale) / 2;
+    y = (H - BAR - natural.h * scale) / 2;
     fitted = true;
     apply();
   }
@@ -40,29 +41,60 @@ export const ZOOM = String.raw`
     b.textContent = text;
     return b;
   }
+  // A visual is a zoomable diagram when all of the body's non-script elements are Mermaid blocks, or the only one is
+  // an svg. A visual that mixes a diagram with anything else is left as it is.
+  function drawn() {
+    return Array.prototype.filter.call(document.body.children, function (e) {
+      // Mermaid adds its own tooltip element to the body; it is not part of the visual.
+      return e.tagName !== 'SCRIPT' && !e.classList.contains('mermaidTooltip');
+    });
+  }
+  function loneSvg() {
+    var all = drawn();
+    return all.length === 1 && all[0].tagName.toLowerCase() === 'svg' ? all[0] : null;
+  }
+  function zoomable() {
+    var all = drawn();
+    if (loneSvg()) return true;
+    return all.length > 0 && all.every(function (e) { return e.classList.contains('mermaid'); });
+  }
+  function missing(value) { return !value || /%\s*$/.test(value); }
   window.xenagosZoom = {
+    zoomable: zoomable,
     attach: function () {
       if (stage) return true;
-      // A diagram is a Mermaid drawing, or a body whose only non-script element is an svg.
-      var drawn = Array.prototype.filter.call(document.body.children, function (e) { return e.tagName !== 'SCRIPT'; });
-      var lone = drawn.length === 1 && drawn[0].tagName.toLowerCase() === 'svg' ? drawn[0] : null;
+      if (!zoomable()) return false;
+      var lone = loneSvg();
       if (!lone && !document.querySelector('.mermaid svg')) return false;
       if (lone) {
-        var box = (lone.getAttribute('viewBox') || '').split(/[\\s,]+/).map(Number);
+        var box = (lone.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
         if (box.length === 4 && box[2] > 0 && box[3] > 0) {
-          if (!lone.getAttribute('width')) lone.setAttribute('width', String(box[2]));
-          if (!lone.getAttribute('height')) lone.setAttribute('height', String(box[3]));
+          if (missing(lone.getAttribute('width'))) lone.setAttribute('width', String(box[2]));
+          if (missing(lone.getAttribute('height'))) lone.setAttribute('height', String(box[3]));
         }
       }
       viewport = document.createElement('div');
       viewport.className = 'xen-viewport';
       stage = document.createElement('div');
       stage.className = 'xen-stage';
+      var moved = [];
       Array.prototype.slice.call(document.body.childNodes).forEach(function (node) {
         if (node.nodeType === 1 && node.tagName === 'SCRIPT') return;
+        moved.push({ node: node, next: node.nextSibling });
         stage.appendChild(node);
       });
       viewport.appendChild(stage);
+      document.body.classList.add('xen-zoomable');
+      document.body.insertBefore(viewport, document.body.firstChild);
+      natural = { w: stage.offsetWidth, h: stage.offsetHeight };
+      if (!(natural.w > 0) || !(natural.h > 0)) {
+        // Nothing measurable to fit: leave the visual exactly as it was.
+        for (var i = moved.length - 1; i >= 0; i--) document.body.insertBefore(moved[i].node, moved[i].next);
+        document.body.removeChild(viewport);
+        document.body.classList.remove('xen-zoomable');
+        stage = null; viewport = null;
+        return false;
+      }
       var controls = document.createElement('div');
       controls.className = 'xen-zoom';
       controls.appendChild(button('out', 'Zoom out', '−'));
@@ -123,10 +155,7 @@ export const ZOOM = String.raw`
           apply();
         }
       }, { passive: false });
-      document.body.classList.add('xen-zoomable');
-      document.body.insertBefore(viewport, document.body.firstChild);
       document.body.appendChild(controls);
-      natural = { w: stage.offsetWidth || 1, h: stage.offsetHeight || 1 };
       fit();
       window.addEventListener('resize', function () { if (fitted) fit(); });
       return true;

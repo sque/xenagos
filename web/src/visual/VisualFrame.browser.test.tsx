@@ -302,6 +302,56 @@ test('a body that is only an svg is zoomable, and an svg beside other elements i
   seen.stop()
 })
 
+test('a lone svg with only a viewBox, or a percentage width, opens fitted with a stage that has size', async () => {
+  const seen = messages()
+  const report = (name: string) => `<script>
+    window.addEventListener('xenagos:ready', () => {
+      const stage = document.querySelector('.xen-stage')
+      const box = stage ? stage.getBoundingClientRect() : null
+      parent.postMessage({ probe: '${name}', view: xenagos.view(), w: box ? box.width : 0, h: box ? box.height : 0,
+        inside: !!box && box.left >= -0.5 && box.top >= -0.5 && box.right <= innerWidth + 0.5 && box.bottom <= innerHeight + 0.5 }, '*')
+    })
+  </script>`
+  const rect = '<rect width="900" height="300" fill="teal"/>'
+  show({ id: 'vb', html: `<svg viewBox="0 0 900 300">${rect}</svg>${report('vb')}`, elements: [] })
+  show({ id: 'pct', html: `<svg width="100%" viewBox="0 0 900 300">${rect}</svg>${report('pct')}`, elements: [] })
+  await vi.waitFor(() => {
+    expect(seen.data.find((d) => d.probe === 'vb')).toBeDefined()
+    expect(seen.data.find((d) => d.probe === 'pct')).toBeDefined()
+  })
+  for (const name of ['vb', 'pct']) {
+    const got = seen.data.find((d) => d.probe === name) as { view: { scale: number } | null; w: number; h: number; inside: boolean }
+    expect(got.view).not.toBeNull()
+    expect(got.w).toBeGreaterThan(10)
+    expect(got.h).toBeGreaterThan(10)
+    expect(got.inside).toBe(true)
+  }
+  seen.stop()
+})
+
+test('a diagram mixed with text or controls is left as it is, and Mermaid keeps its own sizing', async () => {
+  const seen = messages()
+  const report = (name: string) => `<script>
+    window.addEventListener('xenagos:ready', () => {
+      const svg = document.querySelector('.mermaid svg')
+      parent.postMessage({ probe: '${name}', view: xenagos.view(), wrapped: !!document.querySelector('.xen-viewport'),
+        maxWidth: svg ? svg.style.maxWidth : null }, '*')
+    })
+  </script>`
+  const small = `<pre class="mermaid">graph LR
+  a[One]</pre>`
+  show({ id: 'text', html: `<h2>Title</h2>${small}<p>After</p>${report('text')}`, elements: [] })
+  show({ id: 'input', html: `${small}<input type="range">${report('input')}`, elements: [] })
+  await vi.waitFor(() => {
+    expect(seen.data.find((d) => d.probe === 'text')).toBeDefined()
+    expect(seen.data.find((d) => d.probe === 'input')).toBeDefined()
+  }, { timeout: 8000 })
+  expect(seen.data.find((d) => d.probe === 'text')).toMatchObject({ view: null, wrapped: false })
+  expect((seen.data.find((d) => d.probe === 'text') as { maxWidth: string }).maxWidth).not.toBe('')
+  expect(seen.data.find((d) => d.probe === 'input')).toMatchObject({ view: null, wrapped: false })
+  seen.stop()
+})
+
 const node = `const node = document.querySelector('g[id*="flowchart-a-"]')
     const click = (extra) => node.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...extra }))
     const viewport = document.querySelector('.xen-viewport')
@@ -321,6 +371,7 @@ test('dragging moves the diagram, and a drag over a node does not open its code'
     pointer('pointerup', 150, 90)
     click()
     view('dragged')
+    press('in')
     window.addEventListener('message', (event) => { if (event.data && event.data.step === 'click') click() })
     parent.postMessage({ probe: 'swallowed' }, '*')`),
     elements: [{ id: 'a', link: linked }],

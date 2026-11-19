@@ -281,7 +281,8 @@ secret, since the opaque frame sends no cookie and `Origin: null`; only library 
 
 Zoom and pan (asked for by the author, 2026-11-19, after a wide flowchart came out too small to read): Mermaid
 shrinks a diagram to the frame's width. The viewer cannot reach into the sandboxed frame, so zoom and pan are done by
-the helper inside it. They apply when the visual is a diagram: a Mermaid block, or an SVG as the body's only element.
+the helper inside it. They apply when the visual is a diagram: one or more Mermaid blocks and nothing else, or an SVG as the body's only
+element. A visual that mixes a diagram with text or controls is left as it is.
 Mermaid draws at natural size; the helper puts the diagram in a viewport moved with a CSS transform, opens it fitted
 to the frame (never enlarged past natural size), and draws its own `+`, `-` and fit buttons in the frame's corner.
 Ctrl and the wheel, which is also what a trackpad pinch sends, zoom around the pointer; the wheel alone and a drag

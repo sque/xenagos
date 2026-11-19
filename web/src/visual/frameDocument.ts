@@ -73,6 +73,7 @@ const HELPER = String.raw`
       };
       // Mermaid shrinks a diagram to the frame's width; draw it at its own size and let the zoom fit it.
       var natural = function () {
+        if (!xenagosZoom.zoomable()) return;
         document.querySelectorAll('.mermaid svg').forEach(function (svg) {
           var box = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
           if (box.length !== 4 || !(box[2] > 0) || !(box[3] > 0)) return;

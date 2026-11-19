@@ -121,7 +121,7 @@ real server, or a person's judgement. Written 2026-11-18; 96 scenarios: 81 cover
 | Undeclared element | `VisualFrame.browser.test.tsx`; `test_agent.py::test_visual_element_must_be_declared` |
 | Visual attempts a network call | `VisualFrame.browser.test.tsx`: a visual cannot reach the network |
 | Malformed diagram | `VisualFrame.browser.test.tsx`: a visual that fails shows a notice, invalid Mermaid shows the notice |
-| Read a wide diagram | `VisualFrame.browser.test.tsx`: a wide Mermaid diagram opens fitted, and the buttons zoom in, out and back to fit |
+| Read a wide diagram | `VisualFrame.browser.test.tsx`: a wide Mermaid diagram opens fitted, and the buttons zoom in, out and back to fit; dragging moves the diagram, and a drag over a node does not open its code |
 | Click after zooming | `VisualFrame.browser.test.tsx`: dragging moves the diagram, and a drag over a node does not open its code; `VisualFrame.browser.test.tsx`: Shift+click after zooming selects the node with its drawn box |
 | Spotlight out of view | `VisualFrame.browser.test.tsx`: a spotlight on a node out of view centres it, keeping the zoom |
 

@@ -190,9 +190,7 @@ function Folder(props: {
             >
               <span className="name">{node.name}</span>
               {collapsed && <span className="note">collapsed</span>}
-              {(file.status === 'added' || file.status === 'deleted' || file.status === 'renamed') && !collapsed && (
-                <span className="note">{file.status}</span>
-              )}
+              {/* The status is the letter, as in the walkthrough's explorer; the diff's heading names it in full. */}
               <span className="lines">{counts(file)}</span>
               <span className={`letter ${file.status}`}>{LETTER[file.status]}</span>
             </button>

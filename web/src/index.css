@@ -234,6 +234,15 @@ button { font: inherit; color: inherit; }
 .browsefiles { display: flex; flex-direction: column; min-height: 100%; }
 .browsefiles .showing { display: flex; flex-direction: column; gap: 0.25rem; margin: 0 0.5rem 0.75rem; font-size: 0.8rem; color: var(--muted); }
 .browsefiles .showing select { padding: 0.3rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font: inherit; font-size: 0.85rem; }
+/* The browser's own arrow sits against the edge once a select is styled; draw one, inset like the text. */
+.browsefiles .showing select, .narrationmenu select {
+  appearance: none;
+  padding-right: 1.75rem;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 0.95rem) 55%, calc(100% - 0.65rem) 55%;
+  background-size: 0.3rem 0.3rem;
+  background-repeat: no-repeat;
+}
 .browsefiles .category { margin-bottom: 0.6rem; border-radius: 6px; }
 .browsefiles .category[data-drop] { outline: 2px dashed var(--accent); outline-offset: -2px; }
 .browsefiles .category h3 { display: flex; justify-content: space-between; margin: 0.2rem 0.5rem 0.2rem; font-size: 0.85rem; }

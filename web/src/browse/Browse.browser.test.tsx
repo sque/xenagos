@@ -239,3 +239,18 @@ test('one commit of three, under its message', async () => {
   })
   expect(document.querySelector('.commitbanner')).toBeNull()
 })
+
+test('a file row reads as in the walkthrough explorer: name, line counts and status letter, with no status word', async () => {
+  await open()
+  expect(row('scheduler/errors.py')?.textContent).toBe('errors.py+2 −0A')
+  expect(row('scheduler/retry.py')?.textContent).toBe('retry.py+0 −0R')
+})
+
+test('the commit menu keeps its arrow clear of the edge', async () => {
+  await open()
+  const select = document.querySelector<HTMLSelectElement>('.browsefiles .showing select')
+  if (select === null) throw new Error('no commit menu')
+  const style = getComputedStyle(select)
+  expect(style.appearance).toBe('none')
+  expect(parseFloat(style.paddingRight)).toBeGreaterThanOrEqual(24)
+})

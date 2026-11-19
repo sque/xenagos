@@ -12,6 +12,7 @@ const MAX_SPLIT = 0.85
 const WIDTH_KEY: Record<Side, string> = { left: 'xenagos.left-width', right: 'xenagos.right-width' }
 const STEP = 16
 const RIGHT_MIN = 320
+const RIGHT_DEFAULT_MIN = 352
 
 function savedWidth(side: Side): number | null {
   try {
@@ -79,7 +80,9 @@ export function Layout(props: {
   }, [])
 
   // The widths in use: the wanted ones, held within what the window allows (left first, against the right minimum).
-  const left = wanted.left === null || total <= 0 ? wanted.left : clampWidth('left', wanted.left, total, RIGHT_MIN)
+  // An unset right column is the stylesheet's minmax(22rem, 28%), which is wider than its own minimum.
+  const rightAside = wanted.right ?? Math.max(RIGHT_DEFAULT_MIN, 0.28 * total)
+  const left = wanted.left === null || total <= 0 ? wanted.left : clampWidth('left', wanted.left, total, narrow ? RIGHT_MIN : rightAside)
   const right =
     wanted.right === null || total <= 0 ? wanted.right : clampWidth('right', wanted.right, total, narrow ? 0 : (left ?? DEFAULT_LEFT))
 
@@ -100,7 +103,9 @@ export function Layout(props: {
   const resize = (side: Side, want: number) => {
     const layoutWidth = layoutRef.current?.clientWidth ?? 0
     if (layoutWidth <= 0) return
-    remember(side, Math.round(clampWidth(side, want, layoutWidth, rendered(side === 'left' ? 'right' : 'left'))))
+    // The folded file tree takes no room in the grid, even while its pop-over is open over the code.
+    const other = side === 'left' ? rendered('right') : narrow ? 0 : rendered('left')
+    remember(side, Math.round(clampWidth(side, want, layoutWidth, other)))
   }
 
   const style: Record<string, string> = {}

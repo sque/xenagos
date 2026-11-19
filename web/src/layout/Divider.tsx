@@ -26,17 +26,23 @@ export function Divider(props: {
       aria-valuenow={value}
       tabIndex={0}
       onPointerDown={(event) => {
+        if (event.button !== 0) return
         event.currentTarget.setPointerCapture(event.pointerId)
         // The handler of the render that started the drag is used throughout; the callers only read refs and stable setters.
         const move = (e: PointerEvent) => {
           onDrag({ x: e.clientX, y: e.clientY })
         }
+        const target = event.currentTarget
         const up = () => {
           window.removeEventListener('pointermove', move)
           window.removeEventListener('pointerup', up)
+          window.removeEventListener('pointercancel', up)
+          target.removeEventListener('lostpointercapture', up)
         }
         window.addEventListener('pointermove', move)
         window.addEventListener('pointerup', up)
+        window.addEventListener('pointercancel', up)
+        target.addEventListener('lostpointercapture', up)
       }}
       onKeyDown={(event) => {
         if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') onStep(-1)

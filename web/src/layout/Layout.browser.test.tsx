@@ -175,6 +175,52 @@ test('stored widths larger than the window allows come back clamped, and the pag
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(1150)
 })
 
+test('with only a stored left width, the middle column still keeps 384 px at 1150 wide', async () => {
+  localStorage.setItem('xenagos.left-width', '900')
+  await showAt(1150, 800)
+  expect(box('.middle').width).toBeGreaterThanOrEqual(383)
+})
+
+test('below 1100 wide the open file tree pop-over does not limit the right divider', async () => {
+  await showAt(900, 800)
+  fireEvent.click(screen.getByText('Files'))
+  await vi.waitFor(() => {
+    expect(box('.explorer').width).toBeGreaterThan(200)
+  })
+  drag('.coldivider.rightcol', 900 - 400)
+  await vi.waitFor(() => {
+    expect(Math.abs(box('.right').width - 400)).toBeLessThan(2)
+  })
+})
+
+test('a cancelled drag, or a drag with another button, does not move the column', async () => {
+  await showAt(1440, 900)
+  const divider = document.querySelector<HTMLElement>('.coldivider.left') as HTMLElement
+  fireEvent.pointerDown(divider, { pointerId: 1, button: 2, clientX: 256 })
+  window.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, clientX: 400 }))
+  window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1 }))
+  expect(Math.abs(box('.explorer').width - 256)).toBeLessThan(2)
+  fireEvent.pointerDown(divider, { pointerId: 1, button: 0, clientX: 256 })
+  window.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, clientX: 300 }))
+  await vi.waitFor(() => {
+    expect(Math.abs(box('.explorer').width - 300)).toBeLessThan(2)
+  })
+  fireEvent.pointerCancel(divider, { pointerId: 1 })
+  window.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, clientX: 380 }))
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  expect(Math.abs(box('.explorer').width - 300)).toBeLessThan(2)
+})
+
+test('the divider hit areas stay off the scrollbar sides of the columns', async () => {
+  await showAt(1440, 900)
+  const left = box('.coldivider.left')
+  const right = box('.coldivider.rightcol')
+  expect(left.left).toBeGreaterThanOrEqual(box('.explorer').right - 1)
+  expect(right.left).toBeGreaterThanOrEqual(box('.middle').right - 1)
+  expect(left.width).toBe(6)
+  expect(right.width).toBe(6)
+})
+
 test('below 1100 wide the hidden file tree takes nothing from the right column', async () => {
   localStorage.setItem('xenagos.left-width', '400')
   localStorage.setItem('xenagos.right-width', '450')

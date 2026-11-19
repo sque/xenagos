@@ -279,6 +279,11 @@ other field, text included, is dropped. No `ready` within eight seconds, or an e
 notice and a repair request. Mermaid 12.3.0's standalone bundle (5.5 MB) is served at `/visual-assets/` without the
 secret, since the opaque frame sends no cookie and `Origin: null`; only library files are there.
 
+Voice menu (asked for by the author, 2026-11-19): `voice.choices` lists voices of the configured command (for the
+Kokoro script, `af_heart`, `bm_george`, ...). The narration menu offers them beside the browser's own voices in one
+list; picking one switches provider and voice for the next step, and the browser keeps the choice. The server speaks
+any listed command voice whatever the default provider; names are limited to letters, digits, spaces and `._()-`.
+
 Zoom and pan (asked for by the author, 2026-11-19, after a wide flowchart came out too small to read): Mermaid
 shrinks a diagram to the frame's width. The viewer cannot reach into the sandboxed frame, so zoom and pan are done by
 the helper inside it. They apply when the visual is a diagram: one or more Mermaid blocks and nothing else, or an SVG as the body's only

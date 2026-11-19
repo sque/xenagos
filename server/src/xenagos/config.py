@@ -16,9 +16,18 @@ import re
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveFloat, PositiveInt, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PositiveFloat,
+    PositiveInt,
+    StringConstraints,
+    ValidationError,
+    field_validator,
+)
 
 from xenagos.paths import config_home
 
@@ -55,6 +64,8 @@ class NarrationSettings(_Section):
 
 
 VOICE_PLACEHOLDERS = ("output", "voice", "speed", "rate")
+VOICE_NAME = r"^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,63}$"
+"""A voice name the menu may send to the command: no characters a program could read as options or syntax."""
 
 
 class VoiceSettings(_Section):
@@ -68,6 +79,9 @@ class VoiceSettings(_Section):
     (175 at speed 1), for macOS `say -r`."""
     off_machine: bool = False
     """Set when the command sends narration text off this machine; the viewer says so before the first use."""
+    choices: list[Annotated[str, StringConstraints(pattern=VOICE_NAME)]] = Field(default_factory=list)
+    """Voice names of the command that the narration menu offers, beside the browser's own voices, so the reviewer
+    can switch between them while listening."""
 
     @field_validator("command")
     @classmethod
@@ -113,6 +127,8 @@ def load(repo: Path | None = None) -> Settings:
     settings = Settings.model_validate(merged)
     if settings.voice.provider == "command" and settings.voice.command is None:
         raise ConfigError('voice.command: must be set when voice.provider is "command"')
+    if settings.voice.choices and settings.voice.command is None:
+        raise ConfigError("voice.choices: needs voice.command, the program that speaks them")
     return settings
 
 

@@ -13,7 +13,7 @@ import { NarrationMenu } from './NarrationMenu'
 import { Outline } from './Outline'
 import { Player, type PlayerState } from './player'
 import { CodeStage } from './stage'
-import { BrowserVoice, makeVoice, silentVoice, type Voice, voiceAvailable, type VoiceSetup } from './voice'
+import { BrowserVoice, commandVoices, keepVoice, makeVoice, silentVoice, startingVoice, type Voice, voiceAvailable, type VoiceSetup } from './voice'
 
 interface Engine {
   player: Player
@@ -69,7 +69,7 @@ export function Walkthrough(props: {
   const [file, setFile] = useState<FileSides | null>(null)
   const [ticks, setTicks] = useState<Tick[]>([])
   const [voiceOn, setVoiceOn] = useState(props.voice.enabled && voiceAvailable(props.voice.provider))
-  const [speech, setSpeech] = useState<VoiceSetup>({ provider: props.voice.provider, name: props.voice.name, speed: props.voice.speed })
+  const [speech, setSpeech] = useState<VoiceSetup>(() => startingVoice(props.voice))
   const [voiceProblem, setVoiceProblem] = useState<string | null>(null)
   const offMachine = useOffMachine(speech, props.voice.offMachine)
   const [disclosed, setDisclosed] = useState(() => wasDisclosed(props.reviewId))
@@ -359,7 +359,11 @@ export function Walkthrough(props: {
               available={voiceAvailable(speech.provider)}
               onVoice={setVoiceOn}
               speech={speech}
-              onSpeech={setSpeech}
+              commandVoices={commandVoices(props.voice)}
+              onSpeech={(next) => {
+                setSpeech(next)
+                keepVoice(next)
+              }}
               style={style}
               narratedWith={plan.style?.name ?? null}
             />

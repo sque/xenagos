@@ -16,6 +16,8 @@ export function NarrationMenu(props: {
   available: boolean
   onVoice: (on: boolean) => void
   speech: VoiceSetup
+  /** The voice command's voices to offer beside the browser's. */
+  commandVoices: string[]
   onSpeech: (speech: VoiceSetup) => void
   /** The active narration style: a rewrite asked for now uses it. */
   style: string
@@ -91,7 +93,7 @@ export function NarrationMenu(props: {
             </div>
             <label className="row">
               <span>Voice</span>
-              <VoiceChoice speech={speech} onSpeech={props.onSpeech} />
+              <VoiceChoice speech={speech} commandVoices={props.commandVoices} onSpeech={props.onSpeech} />
             </label>
             <label className="row">
               <span>Speed</span>
@@ -142,11 +144,20 @@ export function NarrationMenu(props: {
   )
 }
 
-/** The browser's voices in the page's language, on-machine ones first; a command voice is named as configured. */
-function VoiceChoice({ speech, onSpeech }: { speech: VoiceSetup; onSpeech: (speech: VoiceSetup) => void }) {
+/** One list of every voice there is to try: the voice command's configured voices, then the browser's voices in the
+ * page's language, on-machine ones first. Choosing one switches to it for the next step. */
+function VoiceChoice({
+  speech,
+  commandVoices,
+  onSpeech,
+}: {
+  speech: VoiceSetup
+  commandVoices: string[]
+  onSpeech: (speech: VoiceSetup) => void
+}) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>(() => browserVoices())
   useEffect(() => {
-    if (speech.provider !== 'browser' || !BrowserVoice.available()) return
+    if (!BrowserVoice.available()) return
     const changed = () => {
       setVoices(browserVoices())
     }
@@ -154,25 +165,42 @@ function VoiceChoice({ speech, onSpeech }: { speech: VoiceSetup; onSpeech: (spee
     return () => {
       speechSynthesis.removeEventListener('voiceschanged', changed)
     }
-  }, [speech.provider])
-  if (speech.provider === 'command') {
-    return <span className="value">voice command{speech.name !== null ? ` · ${speech.name}` : ''}</span>
+  }, [])
+  const chosen = speech.provider === 'browser' ? BrowserVoice.pick(speech.name) : null
+  const browser = chosen === null || voices.some((voice) => voice.name === chosen.name) ? voices : [chosen, ...voices]
+  if (browser.length === 0 && commandVoices.length <= 1) {
+    if (speech.provider === 'command') {
+      return <span className="value">voice command{speech.name !== null ? ` · ${speech.name}` : ''}</span>
+    }
+    return <span className="value">this browser's default</span>
   }
-  if (voices.length === 0) return <span className="value">this browser's default</span>
-  const chosen = BrowserVoice.pick(speech.name)
-  const listed = chosen === null || voices.some((voice) => voice.name === chosen.name) ? voices : [chosen, ...voices]
+  const value = speech.provider === 'command' ? `command:${speech.name ?? ''}` : `browser:${chosen?.name ?? ''}`
   return (
     <select
-      value={chosen?.name ?? ''}
+      value={value}
       onChange={(event) => {
-        onSpeech({ ...speech, name: event.target.value })
+        const [provider, ...rest] = event.target.value.split(':')
+        onSpeech({ ...speech, provider: provider === 'command' ? 'command' : 'browser', name: rest.join(':') || null })
       }}
     >
-      {listed.map((voice) => (
-        <option key={voice.voiceURI} value={voice.name}>
-          {voice.localService ? 'this machine' : 'online'} · {voice.name}
-        </option>
-      ))}
+      {commandVoices.length > 0 && (
+        <optgroup label="Voice command">
+          {commandVoices.map((name) => (
+            <option key={`command:${name}`} value={`command:${name}`}>
+              voice command · {name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      {browser.length > 0 && (
+        <optgroup label="Browser">
+          {browser.map((voice) => (
+            <option key={voice.voiceURI} value={`browser:${voice.name}`}>
+              {voice.localService ? 'this machine' : 'online'} · {voice.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
     </select>
   )
 }

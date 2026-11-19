@@ -3,7 +3,7 @@
 Every scenario of the nine specs, with what checks it. Server tests are in `server/tests/`, viewer tests in
 `web/src/` (`*.browser.test.*` run in Chromium against a fake review server). "8.1" names a manual check the end-to-end
 note from task 8.1 must record; those are the scenarios that need a real Claude Code session, a real browser on the
-real server, or a person's judgement. Written 2026-11-18; 96 scenarios: 81 covered by tests alone, 14 that also need a check in 8.1, and 1 waiting for task 3.3.
+real server, or a person's judgement. Written 2026-11-18; 97 scenarios: 82 covered by tests alone, 14 that also need a check in 8.1, and 1 waiting for task 3.3.
 
 ## review-session
 
@@ -96,6 +96,7 @@ real server, or a person's judgement. Written 2026-11-18; 96 scenarios: 81 cover
 | Long explanation | `Outline.browser.test.tsx`: header row |
 | Jump to a later step | `Outline.browser.test.tsx`: outline |
 | Reviewer looks for the style | `NarrationMenu.browser.test.tsx` |
+| Try voices from the menu | `NarrationMenu.browser.test.tsx`: the voice menu offers the command's voices beside the browser's, and switching takes effect at once; a kept choice that the configuration no longer offers is ignored; `test_voice.py::test_command_voices_are_offered_beside_the_browser_voice`, `::test_voice_choices_need_a_command` |
 
 ## repository-explorer
 

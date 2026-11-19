@@ -139,6 +139,8 @@ def test_voice_endpoint(repo: FixtureRepo, fake: tuple[VoiceSettings, Path]) -> 
         "name": "Ava",
         "speed": 1.0,
         "offMachine": True,
+        "command": True,
+        "choices": [],
     }
     response = viewer.post("/api/voice", json={"text": "Look here.", "speed": 1.5})
     assert response.status_code == 200
@@ -149,6 +151,30 @@ def test_voice_endpoint(repo: FixtureRepo, fake: tuple[VoiceSettings, Path]) -> 
     failed = viewer.post("/api/voice", json={"text": "FAIL"})
     assert failed.status_code == 502
     assert failed.json()["detail"] == "the voice command failed with status 3: could not load the model"
+
+
+def test_command_voices_are_offered_beside_the_browser_voice(
+    repo: FixtureRepo, fake: tuple[VoiceSettings, Path]
+) -> None:
+    """The menu can offer the command's voices while the browser speaks by default, and each request names its voice."""
+    settings, _ = fake
+    command = json.dumps(settings.command)
+    write(config.user_file(), f'[voice]\nchoices = ["af_heart", "bm_george"]\ncommand = {command}\n')
+    viewer = client(resolve(repo.path))
+    info = viewer.get("/api/review").json()["voice"]
+    assert (info["provider"], info["command"], info["choices"]) == ("browser", True, ["af_heart", "bm_george"])
+    response = viewer.post("/api/voice", json={"text": "Look here.", "voice": "bm_george"})
+    assert response.status_code == 200
+    assert response.content.endswith(b"Look here.")
+
+
+def test_voice_choices_need_a_command(repo: FixtureRepo) -> None:
+    write(config.user_file(), '[voice]\nchoices = ["af_heart"]\n')
+    with pytest.raises(ConfigError, match=r"voice\.choices: needs voice\.command"):
+        config.load()
+    write(config.user_file(), '[voice]\nchoices = ["af heart; rm"]\ncommand = ["say", "-o", "{output}"]\n')
+    with pytest.raises(ConfigError, match=r"voice\.choices"):
+        config.load()
 
 
 @pytest.mark.skipif(sys.platform != "darwin" or shutil.which("say") is None, reason="macOS say only")

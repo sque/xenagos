@@ -148,6 +148,11 @@ receives the narration text and returns audio. Changing provider or voice SHALL 
 - **WHEN** the user configures a different provider and replays a section
 - **THEN** the same steps play with the new voice and the plan is unchanged
 
+#### Scenario: Try voices from the menu
+- **GIVEN** the configuration names a voice command with several of its voices, beside the browser's own voices
+- **WHEN** the reviewer picks another voice in the narration menu
+- **THEN** the next step is spoken in that voice, and the choice is kept for the next visit in that browser
+
 #### Scenario: User command as provider
 - **GIVEN** the configured provider is a user command
 - **WHEN** a step plays

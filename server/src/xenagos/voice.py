@@ -64,8 +64,8 @@ def cache_key(settings: VoiceSettings, text: str, voice: str | None, speed: floa
 
 def speak(settings: VoiceSettings, text: str, voice: str | None = None, speed: float | None = None) -> Audio:
     """Audio for `text` from the configured command, from the cache when it was made before."""
-    if settings.provider != "command" or settings.command is None:
-        raise VoiceError("the configured voice is not a command; the viewer speaks it itself")
+    if settings.command is None:
+        raise VoiceError("no voice command is configured; the viewer speaks with the browser's voice")
     voice = voice if voice is not None else settings.name
     speed = speed if speed is not None else settings.speed
     folder = audio_cache()

@@ -33,13 +33,21 @@ const review = {
   style: 'terse',
   voice: { enabled: true, provider: 'command', name: 'Ava', speed: 1, offMachine: false },
 }
+/** The voice settings the next test's review reports; reset before each test. */
+let voiceInfo: Record<string, unknown> = review.voice
 
 beforeEach(() => {
+  voiceInfo = review.voice
+  try {
+    localStorage.removeItem('xenagos.voice')
+  } catch {
+    // no storage: nothing to reset
+  }
   history.replaceState(null, '', location.pathname)
   FakeSocket.all = []
   vi.stubGlobal('WebSocket', FakeSocket)
   const routes: Record<string, () => Response> = {
-    '/api/review': () => Response.json(review),
+    '/api/review': () => Response.json({ ...review, voice: voiceInfo }),
     '/api/plan': () => Response.json(plan),
     '/api/coverage': () => Response.json({ hunks: 0, files: 0, categories: [] }),
     '/api/tree': () => Response.json({ files: ['a.py'], changed: [], visited: ['a.py'] }),
@@ -106,4 +114,36 @@ test('one menu, two labelled groups: voice (speak, voice, speed) and wording (st
   expect(within(voice).getByRole('button', { name: 'Speak the narration' }).textContent).toBe('Off')
   fireEvent.keyDown(window, { key: 'Escape' })
   expect(screen.queryByRole('dialog', { name: 'Narration' })).toBeNull()
+})
+
+test("the voice menu offers the command's voices beside the browser's, and switching takes effect at once", async () => {
+  voiceInfo = { enabled: true, provider: 'browser', name: null, speed: 1, offMachine: false, command: true, choices: ['af_heart', 'bm_george'] }
+  await page.viewport(1440, 900)
+  await userEvent.click(document.body)
+  render(<App />)
+  await screen.findByRole('heading', { name: 'Keep the loop alive' })
+  fireEvent.click(screen.getByRole('button', { name: 'Narration' }))
+  const voice = within(screen.getByRole('dialog', { name: 'Narration' })).getByRole('region', { name: 'Voice · how it sounds' })
+  const picker = within(voice).getByLabelText('Voice')
+  const options = [...picker.querySelectorAll('option')].map((o) => o.textContent)
+  expect(options).toEqual(expect.arrayContaining(['voice command · af_heart', 'voice command · bm_george']))
+  fireEvent.change(picker, { target: { value: 'command:bm_george' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Play' }))
+  await vi.waitFor(() => {
+    expect(posted('/api/voice')).toContainEqual({ text: 'The call is wrapped here.', voice: 'bm_george', speed: 1 })
+  })
+  // The choice is kept for the next page of this browser.
+  expect(JSON.parse(localStorage.getItem('xenagos.voice') ?? 'null')).toEqual({ provider: 'command', name: 'bm_george' })
+})
+
+test('a kept choice that the configuration no longer offers is ignored', async () => {
+  localStorage.setItem('xenagos.voice', JSON.stringify({ provider: 'command', name: 'gone' }))
+  voiceInfo = { enabled: true, provider: 'command', name: 'af_heart', speed: 1, offMachine: false, command: true, choices: ['af_heart'] }
+  await page.viewport(1440, 900)
+  render(<App />)
+  await screen.findByRole('heading', { name: 'Keep the loop alive' })
+  fireEvent.click(screen.getByRole('button', { name: 'Play' }))
+  await vi.waitFor(() => {
+    expect(posted('/api/voice')).toContainEqual({ text: 'The call is wrapped here.', voice: 'af_heart', speed: 1 })
+  })
 })

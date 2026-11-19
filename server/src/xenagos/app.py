@@ -178,6 +178,8 @@ def create_app(
                 name=current.voice.name,
                 speed=current.voice.speed,
                 off_machine=current.voice.off_machine,
+                command=current.voice.command is not None,
+                choices=current.voice.choices,
             ),
         )
 

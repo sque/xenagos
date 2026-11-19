@@ -37,6 +37,8 @@ class VoiceInfo(Model):
     name: str | None
     speed: float
     off_machine: bool = Field(description="The configured command sends narration text off this machine.")
+    command: bool = Field(default=False, description="A voice command is configured, whatever the default provider.")
+    choices: list[str] = Field(default_factory=list, description="The command's voices the narration menu offers.")
 
 
 class VoiceRequest(Model):

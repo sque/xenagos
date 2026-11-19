@@ -467,6 +467,14 @@ export interface ReviewInfo {
  * via the `definition` "VoiceInfo".
  */
 export interface VoiceInfo {
+  /**
+   * The command's voices the narration menu offers.
+   */
+  choices?: string[];
+  /**
+   * A voice command is configured, whatever the default provider.
+   */
+  command?: boolean;
   enabled: boolean;
   name: string | null;
   /**

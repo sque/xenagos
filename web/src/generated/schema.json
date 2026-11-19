@@ -1302,6 +1302,18 @@
       "additionalProperties": false,
       "description": "Voice settings from configuration (spec: configuration).",
       "properties": {
+        "choices": {
+          "description": "The command's voices the narration menu offers.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "command": {
+          "default": false,
+          "description": "A voice command is configured, whatever the default provider.",
+          "type": "boolean"
+        },
         "enabled": {
           "type": "boolean"
         },

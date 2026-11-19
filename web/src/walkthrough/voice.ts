@@ -19,6 +19,53 @@ export interface VoiceSetup {
   speed: number
 }
 
+/** The voice settings the review reports (`ReviewInfo.voice`), as far as choosing a voice needs them. */
+export interface ConfiguredVoice {
+  provider: 'browser' | 'command'
+  name: string | null
+  speed: number
+  command?: boolean
+  choices?: string[]
+}
+
+const KEPT = 'xenagos.voice'
+
+/** The command's voices the menu offers: the configured choices, and the configured voice when it is a command's. */
+export function commandVoices(configured: ConfiguredVoice): string[] {
+  const hasCommand = configured.command === true || configured.provider === 'command'
+  if (!hasCommand) return []
+  const names = [...(configured.choices ?? [])]
+  if (configured.provider === 'command' && configured.name !== null && !names.includes(configured.name)) {
+    names.unshift(configured.name)
+  }
+  return names
+}
+
+/** The voice to start with: the one last chosen in this browser, if the configuration still offers it. */
+export function startingVoice(configured: ConfiguredVoice): VoiceSetup {
+  const fromConfig: VoiceSetup = { provider: configured.provider, name: configured.name, speed: configured.speed }
+  try {
+    const kept = JSON.parse(localStorage.getItem(KEPT) ?? 'null') as { provider?: unknown; name?: unknown } | null
+    if (kept === null || typeof kept.name !== 'string') return fromConfig
+    if (kept.provider === 'browser') return { ...fromConfig, provider: 'browser', name: kept.name }
+    if (kept.provider === 'command' && commandVoices(configured).includes(kept.name)) {
+      return { ...fromConfig, provider: 'command', name: kept.name }
+    }
+  } catch {
+    // no storage, or not what was written: the configured voice
+  }
+  return fromConfig
+}
+
+/** Remember the chosen voice for the next page in this browser. */
+export function keepVoice(setup: VoiceSetup): void {
+  try {
+    localStorage.setItem(KEPT, JSON.stringify({ provider: setup.provider, name: setup.name }))
+  } catch {
+    // a private window may refuse storage: the choice lasts for this page
+  }
+}
+
 /** Told once per voice when it fails; playback goes on with captions. */
 export type VoiceFailure = (reason: string) => void
 

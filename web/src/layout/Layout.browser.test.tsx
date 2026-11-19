@@ -50,6 +50,8 @@ beforeEach(() => {
   )
   try {
     localStorage.removeItem('xenagos.outline-split')
+    localStorage.removeItem('xenagos.left-width')
+    localStorage.removeItem('xenagos.right-width')
   } catch {
     // no storage: nothing to reset
   }
@@ -122,11 +124,64 @@ test('the divider moves between outline and agent, by pointer and by keyboard', 
   expect(divider.getAttribute('aria-valuenow')).toBe('30')
 })
 
+function drag(selector: string, x: number) {
+  const divider = document.querySelector<HTMLElement>(selector)
+  if (divider === null) throw new Error(`no ${selector}`)
+  fireEvent.pointerDown(divider, { pointerId: 1, clientX: box(selector).left })
+  window.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, clientX: x }))
+  window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1 }))
+  return divider
+}
+
+test('the left divider widens the file tree by pointer and keyboard, and the width is kept', async () => {
+  await showAt(1440, 900)
+  const divider = drag('.coldivider.left', 400)
+  await vi.waitFor(() => {
+    expect(Math.abs(box('.explorer').width - 400)).toBeLessThan(2)
+  })
+  fireEvent.keyDown(divider, { key: 'ArrowRight' })
+  await vi.waitFor(() => {
+    expect(Math.abs(box('.explorer').width - 416)).toBeLessThan(2)
+  })
+  expect(divider.getAttribute('aria-valuenow')).toBe('416')
+  cleanup()
+  await showAt(1440, 900)
+  expect(Math.abs(box('.explorer').width - 416)).toBeLessThan(2)
+  fireEvent.doubleClick(document.querySelector('.coldivider.left') as Element)
+  await vi.waitFor(() => {
+    expect(Math.abs(box('.explorer').width - 256)).toBeLessThan(2)
+  })
+  expect(localStorage.getItem('xenagos.left-width')).toBeNull()
+})
+
+test('the right divider resizes the outline and agent column within its limits', async () => {
+  await showAt(1440, 900)
+  drag('.coldivider.rightcol', 1440 - 700)
+  await vi.waitFor(() => {
+    expect(Math.abs(box('.right').width - 648)).toBeLessThan(2)
+  })
+  drag('.coldivider.rightcol', 1300)
+  await vi.waitFor(() => {
+    expect(Math.abs(box('.right').width - 320)).toBeLessThan(2)
+  })
+})
+
+test('stored widths larger than the window allows come back clamped, and the page does not scroll sideways', async () => {
+  localStorage.setItem('xenagos.left-width', '900')
+  localStorage.setItem('xenagos.right-width', '900')
+  await showAt(1150, 800)
+  expect(box('.explorer').width).toBeLessThanOrEqual(460)
+  expect(box('.middle').width).toBeGreaterThanOrEqual(383)
+  expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(1150)
+})
+
 test('below 1100 wide the explorer folds away and opens over the code on request', async () => {
   await showAt(900, 800)
   expect(getComputedStyle(document.querySelector('.explorer') as Element).display).toBe('none')
   expect(Math.round(box('.middle').left)).toBe(0)
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(900)
+  const left = document.querySelector('.coldivider.left')
+  expect(left === null || getComputedStyle(left).display === 'none').toBe(true)
   fireEvent.click(screen.getByText('Files'))
   await vi.waitFor(() => {
     expect(box('.explorer').width).toBeGreaterThan(200)

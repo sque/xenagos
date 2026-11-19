@@ -129,6 +129,7 @@ test('a failing voice is reported once, and the steps go on with captions', asyn
     { timeout: 5000 },
   )
   expect(screen.getAllByRole('alert')).toHaveLength(1)
-  // Step 2's audio was asked for ahead, then step 1's; once the voice failed, nothing more.
-  expect(voiceCalls()).toHaveLength(2)
+  // Step 1's audio was asked for when the walkthrough opened, again on play (a failed attempt is not kept), and step
+  // 2's ahead; once the voice failed, nothing more.
+  expect(voiceCalls()).toHaveLength(3)
 })

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import type { CodeTarget, Plan } from '../generated/types'
+import { wait } from './motion'
 import { Player, type PlayerState, type Stage } from './player'
 import type { Voice } from './voice'
 
@@ -18,6 +19,13 @@ const PLAN: Plan = {
         { narration: 'second', form: 'box', target: code('b.py', 9) },
         { narration: 'third', form: 'circle', target: { visual: 'v', element: 'x' } },
       ],
+    },
+    {
+      title: 'Two',
+      role: 'support',
+      explanation: 'e',
+      hunks: [],
+      steps: [{ narration: 'next section', form: 'lines', target: code('c.py', 3) }],
     },
   ],
 }
@@ -156,6 +164,21 @@ describe('player', () => {
     await release()
     expect(states.at(-1)).toEqual({ section: 0, step: 1, status: 'paused' })
     expect(log.filter((l) => l.startsWith('speak'))).toEqual(['speak second'])
+  })
+
+  test('audio is prepared ahead: the step stood on, the same step for a new voice, the next section when one ends', async () => {
+    const { player, release } = harness()
+    const prepared: string[] = []
+    const ready: Voice = { speak: (_text, signal) => wait(0, signal), prepare: (text) => prepared.push(text) }
+    player.moveTo(0, 1)
+    player.setVoice(ready)
+    expect(prepared).toEqual(['second'])
+    player.moveTo(0, 2)
+    expect(prepared).toEqual(['second', 'third'])
+    player.play(0, 2)
+    await release()
+    await flush()
+    expect(prepared.at(-1)).toBe('next section')
   })
 
   test('replay starts the current step over', async () => {

@@ -55,6 +55,14 @@ export class Player {
 
   setVoice(voice: Voice): void {
     this.voice = voice
+    if (this.state.status !== 'playing') this.warm(this.state.section, this.state.step)
+  }
+
+  /** Have the voice make a step's audio ahead of time, so speaking it starts at once (a voice that makes audio on a
+   * server takes seconds for a step it has not made before). */
+  private warm(section: number, step: number): void {
+    const narration = this.plan.sections[section]?.steps[step]?.narration
+    if (narration !== undefined) this.voice.prepare?.(narration)
   }
 
   /** Play a section from a step, replacing whatever was playing. */
@@ -87,6 +95,7 @@ export class Player {
     this.controller?.abort(new DOMException('moved', 'AbortError'))
     this.shown = false
     this.set({ section, step, status: 'idle' })
+    this.warm(section, step)
   }
 
   pause(): void {
@@ -153,5 +162,6 @@ export class Player {
       if (index < steps.length - 1) await wait(this.pause_ms, signal)
     }
     this.set({ section, step: this.state.step, status: 'ended' })
+    this.warm(section + 1, 0)
   }
 }

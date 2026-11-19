@@ -175,6 +175,14 @@ test('stored widths larger than the window allows come back clamped, and the pag
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(1150)
 })
 
+test('below 1100 wide the hidden file tree takes nothing from the right column', async () => {
+  localStorage.setItem('xenagos.left-width', '400')
+  localStorage.setItem('xenagos.right-width', '450')
+  await showAt(1000, 800)
+  expect(Math.abs(box('.right').width - 450)).toBeLessThan(2)
+  expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(1000)
+})
+
 test('below 1100 wide the explorer folds away and opens over the code on request', async () => {
   await showAt(900, 800)
   expect(getComputedStyle(document.querySelector('.explorer') as Element).display).toBe('none')

@@ -51,6 +51,8 @@ export function Layout(props: {
   // The widths the reviewer asked for (null: the stylesheet's default) and the layout's measured width (0: unknown).
   const [wanted, setWanted] = useState<Record<Side, number | null>>(() => ({ left: savedWidth('left'), right: savedWidth('right') }))
   const [total, setTotal] = useState(0)
+  // Below 1100 px (as in the stylesheet) the explorer is a pop-over and takes no room in the grid.
+  const [narrow, setNarrow] = useState(false)
 
   const keep = useCallback((value: number) => {
     const clamped = Math.max(MIN_SPLIT, Math.min(MAX_SPLIT, value))
@@ -67,6 +69,7 @@ export function Layout(props: {
     if (layout === null) return
     const measure = () => {
       setTotal(layout.clientWidth)
+      setNarrow(window.matchMedia('(max-width: 1100px)').matches)
     }
     measure()
     window.addEventListener('resize', measure)
@@ -78,7 +81,7 @@ export function Layout(props: {
   // The widths in use: the wanted ones, held within what the window allows (left first, against the right minimum).
   const left = wanted.left === null || total <= 0 ? wanted.left : clampWidth('left', wanted.left, total, RIGHT_MIN)
   const right =
-    wanted.right === null || total <= 0 ? wanted.right : clampWidth('right', wanted.right, total, left ?? DEFAULT_LEFT)
+    wanted.right === null || total <= 0 ? wanted.right : clampWidth('right', wanted.right, total, narrow ? 0 : (left ?? DEFAULT_LEFT))
 
   const remember = useCallback((side: Side, width: number | null) => {
     setWanted((current) => ({ ...current, [side]: width }))

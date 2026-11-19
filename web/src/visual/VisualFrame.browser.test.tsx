@@ -242,3 +242,32 @@ test('a visual that is not a diagram is left as it is', async () => {
   expect(seen.data.find((d) => d.probe === 'plain')).toMatchObject({ view: null, wrapped: false })
   seen.stop()
 })
+
+test('a body that is only an svg is zoomable, and an svg beside other elements is left as it is', async () => {
+  const seen = messages()
+  const report = (name: string) => `<script>
+    window.addEventListener('xenagos:ready', () => {
+      const stage = document.querySelector('.xen-stage')
+      const box = stage ? stage.getBoundingClientRect() : null
+      parent.postMessage({
+        probe: '${name}',
+        view: xenagos.view(),
+        inside: !!box && box.left >= -0.5 && box.top >= -0.5 && box.right <= innerWidth + 0.5 && box.bottom <= innerHeight + 0.5,
+        buttons: [...document.querySelectorAll('.xen-zoom > button')].map((b) => b.getAttribute('data-xen-zoom') + ':' + b.getAttribute('aria-label')),
+      }, '*')
+    })
+  </script>`
+  const drawing = '<svg viewBox="0 0 900 300" width="900" height="300"><rect width="900" height="300" fill="teal"/></svg>'
+  show({ id: 'lone', html: `${drawing}${report('lone')}`, elements: [] })
+  show({ id: 'mixed', html: `<p>Text</p>${drawing}${report('mixed')}`, elements: [] })
+  await vi.waitFor(() => {
+    expect(seen.data.find((d) => d.probe === 'lone')).toBeDefined()
+    expect(seen.data.find((d) => d.probe === 'mixed')).toBeDefined()
+  })
+  const lone = seen.data.find((d) => d.probe === 'lone') as { view: { scale: number }; inside: boolean; buttons: string[] }
+  expect(lone.view.scale).toBeLessThan(1)
+  expect(lone.inside).toBe(true)
+  expect(lone.buttons).toEqual(['out:Zoom out', 'fit:Fit', 'in:Zoom in'])
+  expect(seen.data.find((d) => d.probe === 'mixed')).toMatchObject({ view: null, buttons: [] })
+  seen.stop()
+})

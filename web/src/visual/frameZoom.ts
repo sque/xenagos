@@ -41,7 +41,17 @@ export const ZOOM = String.raw`
   window.xenagosZoom = {
     attach: function () {
       if (stage) return true;
-      if (!document.querySelector('.mermaid svg')) return false;
+      // A diagram is a Mermaid drawing, or a body whose only non-script element is an svg.
+      var drawn = Array.prototype.filter.call(document.body.children, function (e) { return e.tagName !== 'SCRIPT'; });
+      var lone = drawn.length === 1 && drawn[0].tagName.toLowerCase() === 'svg' ? drawn[0] : null;
+      if (!lone && !document.querySelector('.mermaid svg')) return false;
+      if (lone) {
+        var box = (lone.getAttribute('viewBox') || '').split(/[\\s,]+/).map(Number);
+        if (box.length === 4 && box[2] > 0 && box[3] > 0) {
+          if (!lone.getAttribute('width')) lone.setAttribute('width', String(box[2]));
+          if (!lone.getAttribute('height')) lone.setAttribute('height', String(box[3]));
+        }
+      }
       viewport = document.createElement('div');
       viewport.className = 'xen-viewport';
       stage = document.createElement('div');

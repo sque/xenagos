@@ -3,7 +3,7 @@
 Every scenario of the nine specs, with what checks it. Server tests are in `server/tests/`, viewer tests in
 `web/src/` (`*.browser.test.*` run in Chromium against a fake review server). "8.1" names a manual check the end-to-end
 note from task 8.1 must record; those are the scenarios that need a real Claude Code session, a real browser on the
-real server, or a person's judgement. Written 2026-11-18; 92 scenarios: 77 covered by tests alone, 14 that also need a check in 8.1, and 1 waiting for task 3.3.
+real server, or a person's judgement. Written 2026-11-18; 96 scenarios: 81 covered by tests alone, 14 that also need a check in 8.1, and 1 waiting for task 3.3.
 
 ## review-session
 
@@ -108,6 +108,7 @@ real server, or a person's judgement. Written 2026-11-18; 92 scenarios: 77 cover
 | Changed file the walkthrough skips | `test_tree.py::test_tree_marks_coverage_and_visited_files_from_the_plan`; `Explorer.browser.test.tsx` |
 | Default view of a large repository | `tree.test.ts`: narrow view (400 files, 6 shown, 394 hidden) |
 | Look elsewhere during playback | `Explorer.browser.test.tsx`: choosing a file pauses playback, resume returns to the step |
+| Widen the file tree | `Layout.browser.test.tsx`: the left divider widens the file tree by pointer and keyboard, and the width is kept |
 
 ## section-visuals
 
@@ -120,6 +121,9 @@ real server, or a person's judgement. Written 2026-11-18; 92 scenarios: 77 cover
 | Undeclared element | `VisualFrame.browser.test.tsx`; `test_agent.py::test_visual_element_must_be_declared` |
 | Visual attempts a network call | `VisualFrame.browser.test.tsx`: a visual cannot reach the network |
 | Malformed diagram | `VisualFrame.browser.test.tsx`: a visual that fails shows a notice, invalid Mermaid shows the notice |
+| Read a wide diagram | `VisualFrame.browser.test.tsx`: a wide Mermaid diagram opens fitted, and the buttons zoom in, out and back to fit |
+| Click after zooming | `VisualFrame.browser.test.tsx`: dragging moves the diagram, and a drag over a node does not open its code; `VisualFrame.browser.test.tsx`: Shift+click after zooming selects the node with its drawn box |
+| Spotlight out of view | `VisualFrame.browser.test.tsx`: a spotlight on a node out of view centres it, keeping the zoom |
 
 ## agent-link
 

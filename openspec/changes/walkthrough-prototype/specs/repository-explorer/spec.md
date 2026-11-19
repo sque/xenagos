@@ -16,6 +16,16 @@ the change deleted SHALL also appear, in the place they had.
 - **WHEN** the tree is shown
 - **THEN** `legacy_retry.py` appears under `scheduler`, marked as deleted
 
+### Requirement: Side columns can be resized
+The viewer's left and right columns SHALL each have a divider the reviewer can drag, or move with the arrow keys, to
+change the column's width, within limits that keep every column usable. The widths SHALL be kept for the next visit,
+and a double-click on a divider SHALL restore the default width. A left column that folds away on a narrow window has
+no divider.
+
+#### Scenario: Widen the file tree
+- **WHEN** the reviewer drags the divider right of the file tree to the right
+- **THEN** the tree widens, the code column narrows, and after a reload the tree has the same width
+
 ### Requirement: Changed files are marked
 Each file the change touches SHALL carry a mark saying whether it was modified, added, deleted or renamed, using the
 letters and colours customary for version control. A folder that contains changed files SHALL be marked as such, also

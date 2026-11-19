@@ -29,6 +29,30 @@ space SHALL be taken and no placeholder shown.
 - **WHEN** the reviewer collapses the visual
 - **THEN** the code view uses the freed space and the visual can be opened again
 
+### Requirement: Diagrams can be zoomed and panned
+A visual drawn as a diagram SHALL open fitted to its pane, with zoom in, zoom out and fit controls over it. The
+reviewer SHALL be able to zoom with a pinch or Ctrl and the wheel, and to move the diagram by dragging it or with the
+wheel. A visual that is not a diagram SHALL keep its own scrolling and its own handling of the pointer.
+
+#### Scenario: Read a wide diagram
+- **GIVEN** a section visual whose diagram is wider than its pane
+- **WHEN** the reviewer zooms in and drags the diagram
+- **THEN** the diagram grows and follows the drag
+
+### Requirement: A zoomed diagram keeps its links and spotlights
+In a zoomable diagram, a click that does not drag SHALL still link or select as before, and a spotlight on an element
+outside the shown part SHALL move the diagram to show it.
+
+#### Scenario: Click after zooming
+- **GIVEN** the reviewer has zoomed in on a diagram
+- **WHEN** the reviewer clicks a linked node without dragging
+- **THEN** its code opens, as it would without zoom
+
+#### Scenario: Spotlight out of view
+- **GIVEN** the reviewer has zoomed in on one corner of a diagram
+- **WHEN** a step spotlights a node in another corner
+- **THEN** the diagram moves so that node is shown
+
 ### Requirement: Visuals link to code
 A visual SHALL declare the elements that can be linked, selected or spotlighted, each with an id, when it is
 submitted. A declared element MAY be linked to a code location; activating it SHALL show that location in the viewer.

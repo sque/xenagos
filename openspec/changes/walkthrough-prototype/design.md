@@ -208,6 +208,11 @@ walkthrough mode as an author driving an editor, and was chosen by the author.
   controls. The author found it too much; it also sits close to the customary amber of the modified mark.
 - **Visual** sits above the code and is collapsible and enlargeable. Collapsing it automatically when a step moves
   far from it is not in this change.
+- **Column widths** (asked for by the author, 2026-11-19): the left and right columns each get a vertical divider that
+  works like the one between outline and agent: pointer drag, arrow keys, double-click to restore the default, width
+  kept in the browser's storage. The left column is the explorer in walkthrough mode and the file list in browse mode,
+  so one width serves both. Limits keep the left column between 12rem and 40% of the window, the right one between
+  20rem and 45%, and the middle at least 24rem; below 1100 px the explorer is a pop-over and has no divider.
 
 ### 5a. Caption and step transitions
 
@@ -273,6 +278,16 @@ and reports `ready` or `error`. The viewer accepts messages only from that frame
 other field, text included, is dropped. No `ready` within eight seconds, or an error, replaces the visual with a
 notice and a repair request. Mermaid 12.3.0's standalone bundle (5.5 MB) is served at `/visual-assets/` without the
 secret, since the opaque frame sends no cookie and `Origin: null`; only library files are there.
+
+Zoom and pan (asked for by the author, 2026-11-19, after a wide flowchart came out too small to read): Mermaid
+shrinks a diagram to the frame's width. The viewer cannot reach into the sandboxed frame, so zoom and pan are done by
+the helper inside it. They apply when the visual is a diagram: a Mermaid block, or an SVG as the body's only element.
+Mermaid draws at natural size; the helper puts the diagram in a viewport moved with a CSS transform, opens it fitted
+to the frame (never enlarged past natural size), and draws its own `+`, `-` and fit buttons in the frame's corner.
+Ctrl and the wheel, which is also what a trackpad pinch sends, zoom around the pointer; the wheel alone and a drag
+move the diagram. A press that moves less than a few pixels is a click and links or selects as before; a drag
+swallows the click that follows it. A spotlight on an element outside the shown area moves the diagram to centre it,
+keeping the zoom. A visual that is not a diagram is left as it is, so a widget's sliders and its own scrolling work.
 
 ### 8. File categories
 

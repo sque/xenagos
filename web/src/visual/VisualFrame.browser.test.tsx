@@ -271,3 +271,94 @@ test('a body that is only an svg is zoomable, and an svg beside other elements i
   expect(seen.data.find((d) => d.probe === 'mixed')).toMatchObject({ view: null, buttons: [] })
   seen.stop()
 })
+
+const node = `const node = document.querySelector('g[id*="flowchart-a-"]')
+    const click = (extra) => node.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...extra }))
+    const viewport = document.querySelector('.xen-viewport')
+    const pointer = (type, x, y) => viewport.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, clientX: x, clientY: y }))`
+
+test('dragging moves the diagram, and a drag over a node does not open its code', async () => {
+  const seen = messages()
+  const { onLink } = show({
+    id: 'drag',
+    html:
+      wide +
+      probeView(`
+    ${node}
+    view('start')
+    pointer('pointerdown', 50, 50)
+    pointer('pointermove', 150, 90)
+    pointer('pointerup', 150, 90)
+    click()
+    view('dragged')
+    window.addEventListener('message', (event) => { if (event.data && event.data.step === 'click') click() })
+    parent.postMessage({ probe: 'swallowed' }, '*')`),
+    elements: [{ id: 'a', link: linked }],
+  })
+  await vi.waitFor(() => { expect(seen.data.find((d) => d.probe === 'swallowed')).toBeDefined(); }, { timeout: 8000 })
+  const get = (name: string) => (seen.data.find((d) => d.probe === name) as { view: { x: number; y: number } }).view
+  expect(get('dragged').x - get('start').x).toBeCloseTo(100, 3)
+  expect(get('dragged').y - get('start').y).toBeCloseTo(40, 3)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  expect(onLink).not.toHaveBeenCalled()
+  const frame = document.querySelector('iframe.visualframe') as HTMLIFrameElement
+  frame.contentWindow?.postMessage({ step: 'click' }, '*')
+  await vi.waitFor(() => { expect(onLink).toHaveBeenCalledTimes(1); })
+  expect(onLink.mock.calls[0]?.[0]).toBe('a')
+  seen.stop()
+})
+
+test('Ctrl and the wheel zoom around the pointer; the wheel alone moves', async () => {
+  const seen = messages()
+  show({
+    id: 'wheel',
+    html:
+      wide +
+      probeView(`
+    const viewport = document.querySelector('.xen-viewport')
+    const wheel = (extra) => viewport.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, ...extra }))
+    view('start')
+    wheel({ deltaY: -100, ctrlKey: true, clientX: 120, clientY: 60 })
+    view('zoomed')
+    wheel({ deltaX: 20, deltaY: 50 })
+    view('moved')
+    parent.postMessage({ probe: 'done' }, '*')`),
+    elements: [],
+  })
+  await vi.waitFor(() => { expect(seen.data.find((d) => d.probe === 'done')).toBeDefined(); }, { timeout: 8000 })
+  type V = { scale: number; x: number; y: number }
+  const get = (name: string) => (seen.data.find((d) => d.probe === name) as { view: V }).view
+  const [start, zoomed, moved] = [get('start'), get('zoomed'), get('moved')]
+  expect(zoomed.scale).toBeCloseTo(Math.min(8, start.scale * Math.exp(1)), 5)
+  expect(Math.abs((120 - start.x) / start.scale - (120 - zoomed.x) / zoomed.scale)).toBeLessThan(0.5)
+  expect(Math.abs((60 - start.y) / start.scale - (60 - zoomed.y) / zoomed.scale)).toBeLessThan(0.5)
+  expect(moved.x).toBeCloseTo(zoomed.x - 20, 5)
+  expect(moved.y).toBeCloseTo(zoomed.y - 50, 5)
+  expect(moved.scale).toBe(zoomed.scale)
+  seen.stop()
+})
+
+test('Shift+click after zooming selects the node with its drawn box', async () => {
+  const seen = messages()
+  const { onSelect } = show({
+    id: 'shift',
+    html:
+      // The middle node, so that its zoomed box stays inside the 300 x 150 frame (the viewer clamps boxes to it).
+      `<pre class="mermaid">graph LR
+  x[Before] --> a[Middle] --> y[After]</pre>` +
+      probeView(`
+    ${node}
+    press('in')
+    const drawn = node.getBoundingClientRect()
+    click({ shiftKey: true })
+    parent.postMessage({ probe: 'drawn', width: drawn.width }, '*')`),
+    elements: [{ id: 'a', link: linked }],
+  })
+  await vi.waitFor(() => { expect(seen.data.find((d) => d.probe === 'drawn')).toBeDefined(); }, { timeout: 8000 })
+  await vi.waitFor(() => { expect(onSelect).toHaveBeenCalledTimes(1); })
+  const width = (seen.data.find((d) => d.probe === 'drawn') as { width: number }).width
+  const [id, box] = onSelect.mock.calls[0] as [string, { left: number; right: number }]
+  expect(id).toBe('a')
+  expect(Math.abs(box.right - box.left - width)).toBeLessThan(0.5)
+  seen.stop()
+})

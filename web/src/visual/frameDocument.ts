@@ -7,6 +7,7 @@
 // to the viewer only by posting `link` and `select` messages naming an element, and receives `spotlight`.
 
 import type { Visual } from '../generated/types'
+import { ZOOM } from './frameZoom'
 
 /** Runs inside the frame before the visual's own code. Plain script: it is inlined into the document. */
 const HELPER = String.raw`
@@ -59,12 +60,25 @@ const HELPER = String.raw`
   window.xenagos = {
     link: function (id) { post({ type: 'link', element: String(id) }); },
     select: function (id) { post({ type: 'select', element: String(id) }); },
+    view: function () { return window.xenagosZoom.view(); },
     start: function (elements) {
       declared = elements;
       var finish = function () {
         var missing = declared.filter(function (e) { return !find(e.id); }).map(function (e) { return e.id; });
         declared.forEach(function (e) { var node = find(e.id); if (node) node.setAttribute('data-xen-element', e.linked ? 'linked' : ''); });
+        xenagosZoom.attach();
         post({ type: 'ready', missing: missing, height: document.documentElement.scrollHeight });
+        window.dispatchEvent(new Event('xenagos:ready'));
+      };
+      // Mermaid shrinks a diagram to the frame's width; draw it at its own size and let the zoom fit it.
+      var natural = function () {
+        document.querySelectorAll('.mermaid svg').forEach(function (svg) {
+          var box = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+          if (box.length !== 4 || !(box[2] > 0) || !(box[3] > 0)) return;
+          svg.setAttribute('width', String(box[2]));
+          svg.setAttribute('height', String(box[3]));
+          svg.style.maxWidth = '';
+        });
       };
       if (!document.querySelector('.mermaid')) { finish(); return; }
       var load = function () {
@@ -72,7 +86,7 @@ const HELPER = String.raw`
         script.src = window.xenagosAssets + 'mermaid.min.js';
         script.onload = function () {
           mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default' });
-          mermaid.run({ querySelector: '.mermaid' }).then(finish, function (error) {
+          mermaid.run({ querySelector: '.mermaid' }).then(function () { natural(); finish(); }, function (error) {
             post({ type: 'error', message: 'Mermaid: ' + (error && error.message || error) });
           });
         };
@@ -94,6 +108,13 @@ const HELPER = String.raw`
 const STYLE = `
 :root { color-scheme: light dark; }
 body { margin: 0; padding: 12px; font: 14px/1.5 system-ui, sans-serif; }
+body.xen-zoomable { padding: 0; overflow: hidden; }
+.xen-viewport { position: relative; width: 100vw; height: 100vh; overflow: hidden; cursor: grab; touch-action: none; }
+.xen-stage .mermaid { margin: 0; }
+.xen-stage svg { display: block; }
+.xen-stage { position: absolute; left: 0; top: 0; width: max-content; transform-origin: 0 0; }
+.xen-zoom { position: fixed; right: 8px; bottom: 8px; display: flex; gap: 4px; }
+.xen-zoom button { font: inherit; min-width: 28px; height: 28px; padding: 0 6px; cursor: pointer; }
 [data-xen-element] { cursor: pointer; }
 [data-xen-element="linked"]:hover { outline: 1px dashed rgb(234 179 8); outline-offset: 2px; }
 [data-xen-spot] { outline: 3px solid rgb(234 179 8); outline-offset: 3px; }
@@ -119,6 +140,7 @@ export function frameDocument(visual: Visual, assets: string): string {
 <meta http-equiv="Content-Security-Policy" content="${policy}">
 <style>${STYLE}</style>
 <script>window.xenagosAssets = ${JSON.stringify(assets)};${HELPER}</script>
+<script>${ZOOM}</script>
 </head><body>
 ${visual.html}
 <script>xenagos.start(${JSON.stringify(elements).replace(/</g, '\\u003c')})</script>

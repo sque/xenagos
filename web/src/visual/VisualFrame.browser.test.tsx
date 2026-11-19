@@ -136,3 +136,109 @@ test('invalid Mermaid shows the notice', async () => {
   const notice = await screen.findByRole('status', {}, { timeout: 8000 })
   expect(notice.textContent).toContain('Mermaid')
 })
+
+const wide = `<pre class="mermaid">graph LR
+  a[Collect the batch] --> b[Validate each row] --> c[Normalise the names] --> d[Resolve duplicates]
+  d --> e[Write the records] --> f[Notify the owners] --> g[Archive the input] --> h[Report the totals]</pre>`
+
+/** Script for a visual: posts `xenagos.view()` as `probe` once the frame is ready, then runs `then` (frame code). */
+function probeView(then = '') {
+  return `<script>
+    const view = (name, extra) => parent.postMessage({ probe: name, view: xenagos.view(), ...extra }, '*')
+    const press = (which) => document.querySelector('[data-xen-zoom="' + which + '"]').click()
+    window.addEventListener('xenagos:ready', () => { ${then} })
+  </script>`
+}
+
+test('a wide Mermaid diagram opens fitted, and the buttons zoom in, out and back to fit', async () => {
+  const seen = messages()
+  show({
+    id: 'zoom',
+    html:
+      wide +
+      probeView(`
+      const stage = document.querySelector('.xen-stage').getBoundingClientRect()
+      const inside = stage.left >= -0.5 && stage.top >= -0.5 && stage.right <= innerWidth + 0.5 && stage.bottom <= innerHeight + 0.5
+      view('start', { inside })
+      for (const which of ['in', 'out', 'in', 'fit']) { press(which); view(which) }`),
+    elements: [],
+  })
+  await vi.waitFor(() => { expect(seen.data.filter((d) => d.probe === 'fit')).toHaveLength(1); }, { timeout: 8000 })
+  const get = (name: string) => seen.data.find((d) => d.probe === name) as { view: { scale: number }; inside?: boolean }
+  const fit = get('start').view.scale
+  expect(fit).toBeLessThan(1)
+  expect(get('start').inside).toBe(true)
+  const scales = ['in', 'out', 'in', 'fit'].map((name) => get(name).view.scale)
+  const want = [fit * 1.25, fit, fit * 1.25, fit]
+  scales.forEach((scale, i) => { expect(Math.abs(scale - (want[i] as number))).toBeLessThan(0.001); })
+  seen.stop()
+})
+
+// One node: even two nodes (360 wide as LR, 152 high as TD) do not fit the 300 x 150 test frame.
+test('a diagram smaller than its pane stays at natural size', async () => {
+  const seen = messages()
+  show({
+    id: 'small',
+    html: `<pre class="mermaid">graph LR
+  a[One]</pre>` + probeView(`view('start')`),
+    elements: [],
+  })
+  await vi.waitFor(() => { expect(seen.data.find((d) => d.probe === 'start')).toBeDefined(); }, { timeout: 8000 })
+  expect((seen.data.find((d) => d.probe === 'start') as { view: { scale: number } }).view.scale).toBe(1)
+  seen.stop()
+})
+
+test('a resized frame refits until the reviewer zooms', async () => {
+  const seen = messages()
+  show({
+    id: 'resize',
+    html:
+      wide +
+      probeView(`
+      view('start')
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.step === 'zoom') { press('in'); view('zoomed') }
+        if (event.data && event.data.step === 'report') view(event.data.name)
+      })
+      parent.postMessage({ probe: 'armed' }, '*')`),
+    elements: [],
+  })
+  await vi.waitFor(() => { expect(seen.data.find((d) => d.probe === 'armed')).toBeDefined(); }, { timeout: 8000 })
+  const frame = document.querySelector('iframe.visualframe') as HTMLIFrameElement
+  const scale = (name: string) => (seen.data.find((d) => d.probe === name) as { view: { scale: number } }).view.scale
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 150))
+  const ask = (step: string, name?: string) => frame.contentWindow?.postMessage({ step, name }, '*')
+  const start = scale('start')
+  frame.style.width = '600px'
+  frame.style.height = '300px'
+  await settle()
+  ask('report', 'refit')
+  await vi.waitFor(() => { expect(seen.data.find((d) => d.probe === 'refit')).toBeDefined(); })
+  expect(scale('refit')).toBeGreaterThan(start)
+  expect(scale('refit')).toBeLessThanOrEqual(1)
+  ask('zoom')
+  await vi.waitFor(() => { expect(seen.data.find((d) => d.probe === 'zoomed')).toBeDefined(); })
+  frame.style.width = '300px'
+  frame.style.height = '150px'
+  await settle()
+  ask('report', 'after')
+  await vi.waitFor(() => { expect(seen.data.find((d) => d.probe === 'after')).toBeDefined(); })
+  expect(scale('after')).toBeCloseTo(scale('zoomed'), 3)
+  seen.stop()
+})
+
+test('a visual that is not a diagram is left as it is', async () => {
+  const seen = messages()
+  show({
+    id: 'plain',
+    html: `<input type="range"><div style="height:600px">tall</div><script>
+      window.addEventListener('xenagos:ready', () => {
+        parent.postMessage({ probe: 'plain', view: xenagos.view(), wrapped: !!document.querySelector('.xen-viewport') }, '*')
+      })
+    </script>`,
+    elements: [],
+  })
+  await vi.waitFor(() => { expect(seen.data.find((d) => d.probe === 'plain')).toBeDefined(); })
+  expect(seen.data.find((d) => d.probe === 'plain')).toMatchObject({ view: null, wrapped: false })
+  seen.stop()
+})

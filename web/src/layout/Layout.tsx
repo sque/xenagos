@@ -69,7 +69,7 @@ export function Layout(props: {
     if (layout === null) return
     const measure = () => {
       setTotal(layout.clientWidth)
-      setNarrow(window.matchMedia('(max-width: 1100px)').matches)
+      setNarrow(typeof matchMedia === 'function' && matchMedia('(max-width: 1100px)').matches)
     }
     measure()
     window.addEventListener('resize', measure)

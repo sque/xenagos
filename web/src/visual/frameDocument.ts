@@ -54,7 +54,8 @@ const HELPER = String.raw`
     marked = find(event.data.element);
     if (marked) {
       marked.setAttribute('data-xen-spot', event.data.form || 'box');
-      marked.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      if (window.xenagosZoom.view()) window.xenagosZoom.reveal(marked);
+      else marked.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
   });
   window.xenagos = {

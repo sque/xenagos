@@ -131,8 +131,17 @@ export const ZOOM = String.raw`
       window.addEventListener('resize', function () { if (fitted) fit(); });
       return true;
     },
-    // Task 5 brings an element into view; for now the frame leaves the view as it is.
-    reveal: function (element) {},
+    // Brings an element into view: left alone when its box is already inside, otherwise centred, keeping the scale.
+    reveal: function (element) {
+      if (!stage || !element) return;
+      var r = element.getBoundingClientRect();
+      var W = window.innerWidth, H = window.innerHeight;
+      if (r.left >= 0 && r.top >= 0 && r.right <= W && r.bottom <= H) return;
+      x += W / 2 - (r.left + r.right) / 2;
+      y += H / 2 - (r.top + r.bottom) / 2;
+      fitted = false;
+      apply();
+    },
     view: function () { return stage ? { scale: scale, x: x, y: y } : null; }
   };
 })();

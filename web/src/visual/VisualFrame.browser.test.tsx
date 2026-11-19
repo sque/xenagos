@@ -227,6 +227,36 @@ test('a resized frame refits until the reviewer zooms', async () => {
   seen.stop()
 })
 
+test('a spotlight on a node out of view centres it, keeping the zoom', async () => {
+  const seen = messages()
+  const visual: Visual = {
+    id: 'reveal',
+    html:
+      `<pre class="mermaid">graph LR
+  first[First step] --> second[Second step] --> third[Third step] --> fourth[Fourth step] --> far[Far step]</pre>` +
+      probeView(`
+      for (let i = 0; i < 3; i++) press('in')
+      window.addEventListener('message', (event) => {
+        if (!event.data || event.data.type !== 'spotlight' || !event.data.element) return
+        requestAnimationFrame(() => {
+          const box = document.querySelector('g[id*="flowchart-far-"]').getBoundingClientRect()
+          const inside = box.left >= -0.5 && box.top >= -0.5 && box.right <= innerWidth + 0.5 && box.bottom <= innerHeight + 0.5
+          view('revealed', { inside })
+        })
+      })
+      view('zoomed')`),
+    elements: [{ id: 'far', link: linked }],
+  }
+  const { rerender } = render(<VisualFrame visual={visual} spot={null} onLink={vi.fn()} onSelect={vi.fn()} />)
+  await vi.waitFor(() => { expect(seen.data.find((d) => d.probe === 'zoomed')).toBeDefined(); }, { timeout: 8000 })
+  rerender(<VisualFrame visual={visual} spot={{ element: 'far', form: 'box' }} onLink={vi.fn()} onSelect={vi.fn()} />)
+  await vi.waitFor(() => { expect(seen.data.find((d) => d.probe === 'revealed')).toBeDefined(); }, { timeout: 8000 })
+  const get = (name: string) => seen.data.find((d) => d.probe === name) as { view: { scale: number }; inside?: boolean }
+  expect(get('revealed').inside).toBe(true)
+  expect(get('revealed').view.scale).toBe(get('zoomed').view.scale)
+  seen.stop()
+})
+
 test('a visual that is not a diagram is left as it is', async () => {
   const seen = messages()
   show({

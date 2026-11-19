@@ -314,6 +314,20 @@ describe('overlay regression check (task 6.6)', () => {
   })
 })
 
+test('a view destroyed while it loads a file leaves nothing in the page', async () => {
+  const scroller = document.createElement('div')
+  scroller.style.cssText = 'height:600px;width:900px;overflow:auto;position:relative'
+  const content = document.createElement('div')
+  scroller.append(content)
+  document.body.append(scroller)
+  const view = new CodeView(scroller, content, () => undefined)
+  const showing = view.show(FILE)
+  view.destroy()
+  await Promise.race([showing, new Promise((resolve) => setTimeout(resolve, 2000))])
+  await settled()
+  expect(content.querySelectorAll('diffs-container')).toHaveLength(0)
+})
+
 test('a selection names its file, sides and lines in reading order', () => {
   const file = { path: 'app.py', oldPath: 'old.py', base: 'a\n', head: 'b\n' }
   expect(selection(file, { start: 12, side: 'additions', end: 10, endSide: 'additions' })).toEqual({

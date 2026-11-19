@@ -3,7 +3,7 @@
 Every scenario of the nine specs, with what checks it. Server tests are in `server/tests/`, viewer tests in
 `web/src/` (`*.browser.test.*` run in Chromium against a fake review server). "8.1" names a manual check the end-to-end
 note from task 8.1 must record; those are the scenarios that need a real Claude Code session, a real browser on the
-real server, or a person's judgement. Written 2026-11-18; 91 scenarios: 76 covered by tests alone, 14 that also need a check in 8.1, and 1 waiting for task 3.3.
+real server, or a person's judgement. Written 2026-11-18; 92 scenarios: 77 covered by tests alone, 14 that also need a check in 8.1, and 1 waiting for task 3.3.
 
 ## review-session
 
@@ -87,6 +87,7 @@ real server, or a person's judgement. Written 2026-11-18; 91 scenarios: 76 cover
 | Try another style on the same walkthrough | `test_config.py::test_renarration_is_checked_against_and_recorded_with_the_active_style`; `test_agent.py::test_narration_submit_changes_narration_only` |
 | End of section | `player.test.ts` (stops at the end); `Outline.browser.test.tsx` (section done) |
 | Wander off and return | `Outline.browser.test.tsx`: scrolling or clicking in the code pauses; `Explorer.browser.test.tsx`: choosing a file pauses |
+| Step by hand | `player.test.ts`: when paused, next shows the following step and stops on it; stepping by hand stays by hand until play is pressed |
 | Switch provider | `test_voice.py` (cache key includes the provider); `voice.browser.test.ts`; 8.1: by ear |
 | User command as provider | `test_voice.py::test_command_gets_the_narration_and_its_audio_is_cached`, `::test_macos_say_example_writes_wav` |
 | Provider fails | `test_voice.py::test_failures_are_explained_and_not_cached`; `voiceNotice.browser.test.tsx`: a failing voice is reported once |

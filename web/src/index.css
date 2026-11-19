@@ -70,9 +70,10 @@ button { font: inherit; color: inherit; }
 .stagebar h2 { font-size: 1rem; margin: 0; }
 .stagebar .position { color: var(--muted); white-space: nowrap; }
 .transport { display: flex; gap: 0.2rem; margin-left: auto; }
-.icon { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); cursor: pointer; }
+.icon { display: inline-grid; place-items: center; width: 2rem; height: 2rem; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); cursor: pointer; }
 .icon:disabled { opacity: 0.4; cursor: default; }
-.icon.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Also overrides the padding of the general `button.primary`, which pushed the play icon out of its square. */
+.icon.primary { padding: 0; background: var(--accent); border-color: var(--accent); color: #fff; }
 .filebar { display: flex; gap: 0.75rem; padding: 0.3rem 0.75rem; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; }
 .filebar .filepath { font-family: ui-monospace, monospace; color: var(--fg); overflow: hidden; text-overflow: ellipsis; }
 .codepanel { position: relative; flex: 1; min-height: 0; }

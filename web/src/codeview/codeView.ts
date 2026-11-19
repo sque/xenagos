@@ -61,6 +61,7 @@ export class CodeView {
   private container: HTMLElement | undefined
   private diff: FileDiffMetadata | undefined
   private layoutStyle: Layout = 'unified'
+  private destroyed = false
   file: FileSides | undefined
   /** Called when the reviewer finishes selecting lines, and with null when the selection is cleared. */
   onSelect: (selection: LineSelection | null) => void = () => undefined
@@ -79,6 +80,9 @@ export class CodeView {
     // Rendering before the highlighter has loaded the file's language makes the virtualiser jump to the end of the
     // scroll container once highlighting arrives (seen with @pierre/diffs 1.6.4), so load it first.
     await preloadHighlighter({ themes: Object.values(DEFAULT_THEMES), langs: [getFiletypeFromFileName(file.path)] })
+    // Destroyed while the highlighter loaded, as when the walkthrough rebuilds its view: a file shown now would sit
+    // in the page beside the new view's, as a blank copy the height of the file.
+    if (this.destroyed) return
     this.instance?.cleanUp()
     this.container?.remove()
     const container = document.createElement(DIFFS_TAG_NAME)
@@ -241,6 +245,7 @@ export class CodeView {
   }
 
   destroy(): void {
+    this.destroyed = true
     this.instance?.cleanUp()
     this.container?.remove()
     this.virtualizer.cleanUp()

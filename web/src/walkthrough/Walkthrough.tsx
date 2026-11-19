@@ -146,10 +146,16 @@ export function Walkthrough(props: {
     const where = plan.sections[initial.section]?.steps[initial.step] === undefined ? { section: 0, step: 0 } : initial
     player.moveTo(where.section, where.step)
     const first = plan.sections[where.section]?.steps[where.step]?.target ?? plan.sections[0].steps[0].target
+    // Ended with this view, which is rebuilt whenever the plan is fetched again (the events connection does that each
+    // time it opens), so a slow first file does not land in a view that is gone.
+    const opening = new AbortController()
     if ('path' in first) {
-      void stage.showFile(first.path, new AbortController().signal)
+      stage.showFile(first.path, opening.signal).catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) throw error
+      })
     }
     return () => {
+      opening.abort(new DOMException('view replaced', 'AbortError'))
       player.stop()
       scroller.removeEventListener('wheel', wander)
       scroller.removeEventListener('touchmove', wander)

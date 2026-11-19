@@ -115,6 +115,49 @@ describe('player', () => {
     expect(states.at(-1)?.step).toBe(0)
   })
 
+  test('when paused, next shows the following step and stops on it', async () => {
+    const { player, states, log, release } = harness()
+    player.play(0)
+    await flush()
+    player.pause()
+    player.next()
+    await release()
+    expect(states.at(-1)).toEqual({ section: 0, step: 1, status: 'paused' })
+    await flush()
+    expect(log.filter((l) => l.startsWith('speak'))).toEqual(['speak first', 'speak second'])
+  })
+
+  test('stepping by hand stays by hand until play is pressed, which goes on from the following step', async () => {
+    const { player, states, log, release } = harness()
+    player.next()
+    await flush()
+    // A second press while that step is still being shown is also a step by hand.
+    player.previous()
+    await release()
+    expect(states.at(-1)).toEqual({ section: 0, step: 0, status: 'paused' })
+    player.resume()
+    await flush()
+    expect(states.at(-1)).toEqual({ section: 0, step: 1, status: 'playing' })
+    expect(log.filter((l) => l.startsWith('speak'))).toEqual(['speak second', 'speak first', 'speak second'])
+  })
+
+  test('a step shown by hand to the end of the section ends it', async () => {
+    const { player, states, release } = harness()
+    player.moveTo(0, 1)
+    player.next()
+    await release()
+    expect(states.at(-1)).toEqual({ section: 0, step: 2, status: 'ended' })
+  })
+
+  test('when paused, replay shows the step again and stops on it', async () => {
+    const { player, states, log, release } = harness()
+    player.moveTo(0, 1)
+    player.replay()
+    await release()
+    expect(states.at(-1)).toEqual({ section: 0, step: 1, status: 'paused' })
+    expect(log.filter((l) => l.startsWith('speak'))).toEqual(['speak second'])
+  })
+
   test('replay starts the current step over', async () => {
     const { player, log } = harness()
     player.play(0, 1)

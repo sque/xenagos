@@ -299,3 +299,46 @@ test('a review opened again starts where it was left and lists the questions ask
     delete routes['/api/questions']
   }
 })
+
+test('the play button keeps its icon in its middle, at the size of the other controls', async () => {
+  await open()
+  const play = document.querySelector<HTMLElement>('.transport .icon.primary')
+  const next = screen.getByRole('button', { name: 'Next step' })
+  const icon = play?.querySelector('svg')?.getBoundingClientRect()
+  const box = play?.getBoundingClientRect()
+  if (icon === undefined || box === undefined) throw new Error('no play button')
+  expect(Math.abs(icon.left + icon.width / 2 - (box.left + box.width / 2))).toBeLessThan(1)
+  expect(Math.abs(icon.top + icon.height / 2 - (box.top + box.height / 2))).toBeLessThan(1)
+  expect(box.width).toBe(next.getBoundingClientRect().width)
+})
+
+test('events reconnecting while the first file loads leave one copy of the file in the code panel', async () => {
+  // Hold the first file back, so the walkthrough is still loading it when the events connection opens.
+  let release: () => void = () => undefined
+  const held = new Promise<void>((resolve) => (release = resolve))
+  const plain = vi.mocked(fetch).getMockImplementation()
+  const urlOf = (input: unknown) => (typeof input === 'string' ? input : '')
+  vi.mocked(fetch).mockImplementation(async (input) => {
+    if (urlOf(input) === '/api/file?path=a.py') await held
+    return plain?.(input) ?? new Response('', { status: 404 })
+  })
+  await page.viewport(1440, 900)
+  render(<App />)
+  await vi.waitFor(() => {
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => urlOf(url) === '/api/file?path=a.py')).toBe(true)
+  })
+  const plans = () => vi.mocked(fetch).mock.calls.filter(([url]) => urlOf(url) === '/api/plan').length
+  const before = plans()
+  // Opening the events connection fetches the plan again, which builds the walkthrough's code view anew.
+  FakeSocket.all.find((s) => s.url.endsWith('/api/events'))?.open()
+  await vi.waitFor(() => {
+    expect(plans()).toBe(before + 1)
+  })
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  release()
+  await vi.waitFor(() => {
+    expect(filePath()).toBe('a.py')
+  })
+  await new Promise((resolve) => setTimeout(resolve, 600))
+  expect(document.querySelectorAll('.codepanel diffs-container')).toHaveLength(1)
+})

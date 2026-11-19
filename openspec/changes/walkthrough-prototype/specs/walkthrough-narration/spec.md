@@ -132,6 +132,12 @@ without losing the current step.
 - **WHEN** the reviewer scrolls to another file and later presses resume
 - **THEN** the viewer returns to step 3's target and continues from step 3
 
+#### Scenario: Step by hand
+- **GIVEN** playback is paused, or has not started, on step 2
+- **WHEN** the reviewer presses next
+- **THEN** the viewer shows and speaks step 3 and stops on it, without moving on to step 4
+- **AND** pressing play then continues from step 4
+
 ### Requirement: Voice is pluggable
 The voice that speaks narration SHALL be a replaceable provider chosen in configuration. The system SHALL ship a
 provider that runs on the machine with no account, and SHALL accept a provider defined by the user as a command that

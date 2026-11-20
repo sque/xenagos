@@ -329,6 +329,26 @@ test('a lone svg with only a viewBox, or a percentage width, opens fitted with a
   seen.stop()
 })
 
+test('a lone svg in a frame that is laid out only later still opens fitted with zoom', async () => {
+  const seen = messages()
+  const report = `<script>
+    window.addEventListener('xenagos:ready', () => parent.postMessage({ probe: 'late', view: xenagos.view() }, '*'))
+  </script>`
+  const visual = { id: 'late', html: `<svg viewBox="0 0 900 300"><rect width="900" height="300" fill="teal"/></svg>${report}`, elements: [] }
+  render(
+    <div data-testid="pane" style={{ display: 'none' }}>
+      <VisualFrame visual={visual} spot={null} onLink={vi.fn()} onSelect={vi.fn()} />
+    </div>,
+  )
+  await new Promise((resolve) => setTimeout(resolve, 400))
+  screen.getByTestId('pane').style.display = 'block'
+  await vi.waitFor(() => {
+    expect(seen.data.find((d) => d.probe === 'late')).toBeDefined()
+  })
+  expect((seen.data.find((d) => d.probe === 'late') as { view: unknown }).view).not.toBeNull()
+  seen.stop()
+})
+
 test('a diagram mixed with text or controls is left as it is, and Mermaid keeps its own sizing', async () => {
   const seen = messages()
   const report = (name: string) => `<script>

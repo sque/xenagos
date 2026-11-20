@@ -82,7 +82,17 @@ const HELPER = String.raw`
           svg.style.maxWidth = '';
         });
       };
-      if (!document.querySelector('.mermaid')) { finish(); return; }
+      // A diagram is measured to fit it, and Mermaid sizes labels from the live layout; in a hidden or zero-width
+      // document both measure wrong (seen live: a tab opened in the background drew empty, overlapping boxes, and a
+      // lone svg in a frame not yet laid out was left without zoom). Go on once the frame can be seen.
+      var shown = function (then) {
+        if (document.hidden || document.body.clientWidth === 0) { setTimeout(function () { shown(then); }, 200); return; }
+        then();
+      };
+      if (!document.querySelector('.mermaid')) {
+        if (xenagosZoom.zoomable()) shown(finish); else finish();
+        return;
+      }
       var load = function () {
         var script = document.createElement('script');
         script.src = window.xenagosAssets + 'mermaid.min.js';
@@ -95,13 +105,7 @@ const HELPER = String.raw`
         script.onerror = function () { post({ type: 'error', message: 'the Mermaid helper did not load' }); };
         document.head.appendChild(script);
       };
-      // Mermaid sizes labels from the live layout; in a hidden or zero-width document it measures them wrong (seen
-      // live: a tab opened in the background drew empty, overlapping boxes). Draw once the frame can be seen.
-      var draw = function () {
-        if (document.hidden || document.body.clientWidth === 0) { setTimeout(draw, 200); return; }
-        document.fonts.ready.then(load);
-      };
-      draw();
+      shown(function () { document.fonts.ready.then(load); });
     }
   };
 })();

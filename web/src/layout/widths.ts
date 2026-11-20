@@ -6,6 +6,7 @@
 
 export type Side = 'left' | 'right'
 
+/** The file tree's width before any drag, matching the stylesheet's default of 16rem. */
 export const DEFAULT_LEFT = 256
 
 const MIN: Record<Side, number> = { left: 192, right: 320 }

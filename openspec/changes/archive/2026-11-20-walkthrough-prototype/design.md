@@ -500,4 +500,6 @@ on the user's behalf: it passes Claude Code's refusal on to the viewer, and the 
 
 - Which local neural voice to recommend for the `command` provider. Does not change the interface. Proposed and
   accepted on 2026-11-17, to be checked by ear in task 6.9: Kokoro (82M, Apache-2.0) as the recommended voice, Piper
-  as the lighter fallback, and macOS `say` with a Premium voice as the option that needs no install.
+  as the lighter fallback, and macOS `say` with a Premium voice as the option that needs no install. Resolved on 2026-11-20:
+  the author installed Kokoro as the voice command, chose among its voices in the narration menu and approved it by
+  ear (task 6.9).

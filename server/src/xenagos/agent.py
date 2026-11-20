@@ -14,7 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from xenagos import claude, git
+from xenagos import checkout, claude, git
 from xenagos.api import AgentRequest, AgentStatus, CodeSelection, Delivery, ElementSelection, Position, Question
 from xenagos.claude import ClaudeError, Session, StillOpen
 from xenagos.config import ConfigError
@@ -95,7 +95,7 @@ class Agent:
 
     def status(self) -> AgentStatus:
         if self.session_id is None:
-            return AgentStatus(state="none")
+            return AgentStatus(state="none", private_checkout=not checkout.at_head(self.review.target))
         try:
             session = self.session()
         except ClaudeError as error:
@@ -106,7 +106,12 @@ class Agent:
             reason = f"Claude Code no longer lists this session. {CONTINUE_OR_START}"
             return AgentStatus(state="ended", session=self.session_id, name=name, reason=reason)
         self.store.set_session(session.session_id, session.name, session.cwd)
-        common = {"session": session.session_id, "name": session.label, "activity": session.status}
+        common = {
+            "session": session.session_id,
+            "name": session.label,
+            "activity": session.status,
+            "private_checkout": checkout.is_private(session.cwd),
+        }
         if session.kind != "background":
             where = "Close it in its terminal, then continue it here" if session.running else "Continue it here"
             reason = (
@@ -128,16 +133,17 @@ class Agent:
     # Starting a session
 
     def working_dir(self) -> Path:
-        """Where the session runs: the user's checkout when it is at the reviewed head (spec: "The session runs where
-        the code is")."""
+        """Where the session runs: the user's checkout when it is at the reviewed head, otherwise xenagos's private
+        checkout of the head (spec: "The session runs where the code is")."""
         target = self.review.target
-        if git.try_run(target.repo, "rev-parse", "HEAD") != target.head:
+        if checkout.at_head(target):
+            return target.repo
+        try:
+            return checkout.private_checkout(target)
+        except git.GitError as error:
             raise AgentError(
-                409,
-                f"Your checkout of {target.repo} is not at the reviewed head {target.head[:10]}. "
-                "A session for this review needs a private checkout, which this version cannot make yet.",
-            )
-        return target.repo
+                500, f"xenagos could not make its private checkout of {target.head[:10]} for the session: {error}"
+            ) from error
 
     def session_name(self) -> str:
         target = self.review.target

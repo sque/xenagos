@@ -90,6 +90,11 @@ class AgentStatus(Model):
     activity: str | None = Field(default=None, description="What Claude Code reports while it runs: idle, busy, ...")
     shared: bool = Field(default=False, description="The session is also shown in another terminal.")
     reason: str | None = Field(default=None, description="Why the pane is empty, for the reviewer.")
+    private_checkout: bool = Field(
+        default=False,
+        description="The session runs, or one started now would run, in xenagos's private checkout of the head, "
+        "because the user's checkout is not at it.",
+    )
 
 
 class CodeSelection(Model):

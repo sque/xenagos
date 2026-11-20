@@ -142,6 +142,17 @@ test('shows what the session is doing and that its display is shared', async () 
   expect(screen.getByRole('note').textContent).toContain('also open in another terminal')
 })
 
+test('says when the session works in the private checkout, and before one is started there', async () => {
+  const running = { state: 'attachable', session: 's', name: 'worker', activity: 'idle', privateCheckout: true }
+  serve({ '/api/review': json(review), '/api/agent': json(running) })
+  render(<App />)
+  expect((await screen.findByRole('note')).textContent).toContain("xenagos's private checkout of the reviewed commit")
+  cleanup()
+  serve({ '/api/review': json(review), '/api/agent': json({ state: 'none', privateCheckout: true }) })
+  render(<App />)
+  expect(await screen.findByText(/starts one in xenagos's private checkout/)).toBeDefined()
+})
+
 test('offers a new session when the session has ended', async () => {
   serve({ '/api/review': json(review), '/api/agent': json({ state: 'ended', name: 'worker', reason: 'The session has stopped.' }) })
   render(<App />)

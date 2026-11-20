@@ -61,8 +61,17 @@ export function AgentPane({
       {status === null && <p className="agentnote">Asking Claude Code about the review's session…</p>}
       {status?.state === 'none' && (
         <p className="agentnote">
-          No agent session yet. Asking about selected code, or asking for a walkthrough, starts one in this
-          repository.
+          {status.privateCheckout === true
+            ? "No agent session yet. Asking about selected code, or asking for a walkthrough, starts one in xenagos's " +
+              'private checkout of the reviewed commit, because your checkout is not at it.'
+            : 'No agent session yet. Asking about selected code, or asking for a walkthrough, starts one in this ' +
+              'repository.'}
+        </p>
+      )}
+      {status !== null && status.state !== 'none' && status.privateCheckout === true && (
+        <p className="agentnote private" role="note">
+          This session works in xenagos&apos;s private checkout of the reviewed commit, not in your checkout. Settings
+          and instructions that exist only in your checkout do not apply there, and its edits stay in that copy.
         </p>
       )}
       {status !== null && !attachable && status.state !== 'none' && (

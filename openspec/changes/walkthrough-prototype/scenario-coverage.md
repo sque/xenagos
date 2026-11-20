@@ -3,7 +3,7 @@
 Every scenario of the nine specs, with what checks it. Server tests are in `server/tests/`, viewer tests in
 `web/src/` (`*.browser.test.*` run in Chromium against a fake review server). "8.1" names a manual check the end-to-end
 note from task 8.1 must record; those are the scenarios that need a real Claude Code session, a real browser on the
-real server, or a person's judgement. Written 2026-11-18; 97 scenarios: 82 covered by tests alone, 14 that also need a check in 8.1, and 1 waiting for task 3.3.
+real server, or a person's judgement. Written 2026-11-18, updated 2026-11-20 with task 3.3; 97 scenarios: 83 covered by tests alone and 14 that also need a check in 8.1.
 
 ## review-session
 
@@ -28,7 +28,7 @@ real server, or a person's judgement. Written 2026-11-18; 97 scenarios: 82 cover
 | Branch against base | `test_target.py::test_current_branch_against_named_base`, `::test_default_is_current_branch_against_default_from_fork_point`; `App.test.tsx`: shows the target and both pinned commit ids |
 | Unknown revision | `test_target.py::test_unknown_revision_is_named`; `test_cli.py::test_unknown_target_exits_with_its_name` |
 | Branch moves during review | `test_target_status.py::test_branch_moved_past_the_pinned_head_is_reported_and_the_review_stays_pinned`; `App.test.tsx`: reports a moved branch |
-| Reviewing a head that is not checked out | `test_target_status.py::test_browsing_a_head_that_is_not_checked_out_leaves_the_checkout_alone` (xenagos's own reads). The private checkout for the agent is task 3.3, open |
+| Reviewing a head that is not checked out | `test_target_status.py::test_browsing_a_head_that_is_not_checked_out_leaves_the_checkout_alone` (xenagos's own reads); `test_agent.py::test_away_from_the_reviewed_head_the_session_runs_in_a_private_checkout` (status, branch, stash list, HEAD, refs, worktrees, config and index unchanged while the private checkout is made) |
 | Dirty working tree | `test_target_status.py::test_uncommitted_changes_to_reviewed_files_are_named_without_touching_the_index`; `App.test.tsx`: reports uncommitted changes |
 | On the default branch | `test_target.py::test_no_default_target_on_default_branch`; `test_cli.py::test_no_default_target_opens_nothing_and_asks_for_one` |
 
@@ -143,6 +143,6 @@ real server, or a person's judgement. Written 2026-11-18; 97 scenarios: 82 cover
 | Ask during work | 8.1: a question sent while the session works is queued and answered (spike 2.1) |
 | Answer that points | `test_agent.py::test_viewer_hears_of_plan_changes_and_pointing`; `VisualPane.browser.test.tsx` (the viewer opens and spotlights); 8.1: a real answer uses `xen show` |
 | Fix asked during playback | `test_skill.py::test_skill_names_every_agent_command_and_the_rules_for_fixes`; 8.1: a real fix stays uncommitted and the plan survives |
-| Fix asked in the private checkout | Waits for task 3.3 and the author's decision on sessions in private checkouts |
+| Fix asked in the private checkout | `test_skill.py::test_skill_names_every_agent_command_and_the_rules_for_fixes` (the skill tells the session, which is what the requirement asks); `test_agent.py::test_away_from_the_reviewed_head_the_session_runs_in_a_private_checkout`, `::test_the_private_checkout_is_kept_with_the_sessions_edits`; `App.test.tsx`: says when the session works in the private checkout |
 | Interrupt and resume | `player.test.ts`: pause keeps the step and resume plays it again; 8.1: asking from a selection pauses and resume continues (seen live for task 7.8) |
 | Same session open twice | `test_agent.py::test_another_terminal_showing_the_session_is_noticed`; `App.test.tsx`: display is shared |

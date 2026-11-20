@@ -74,7 +74,7 @@ def test_uncommitted_changes_to_reviewed_files_are_named_without_touching_the_in
 
 def test_browsing_a_head_that_is_not_checked_out_leaves_the_checkout_alone(repo: FixtureRepo) -> None:
     """spec: review-target, "Reviewing a head that is not checked out": xenagos's own reads go through the object
-    store. (A private checkout for the agent is task 3.3.)"""
+    store. The agent's private checkout has its own test in test_agent.py."""
     repo.git("switch", "-q", "main")
     (repo.path / "README.md").write_text("edited, not committed\n")
     (repo.path / "notes.txt").write_text("untracked\n")

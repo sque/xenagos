@@ -12,7 +12,7 @@ from starlette.testclient import WebSocketTestSession
 from tests.conftest import FakeClaude, FixtureRepo
 from xenagos import agent as agent_module
 from xenagos import app as app_module
-from xenagos import claude
+from xenagos import checkout, claude, git
 from xenagos.access import SECRET_HEADER, Access
 from xenagos.agent import AgentSettings, visible_text
 from xenagos.app import create_app
@@ -156,14 +156,63 @@ def test_refusal_to_start_is_passed_on(target: ReviewTarget, fake_claude: FakeCl
     assert ReviewStore(target.review_id).load().session is None  # type: ignore[union-attr]
 
 
-def test_no_session_is_started_away_from_the_reviewed_head(
+def test_away_from_the_reviewed_head_the_session_runs_in_a_private_checkout(
     target: ReviewTarget, repo: FixtureRepo, fake_claude: FakeClaude
 ) -> None:
+    """spec: review-target, "Reviewing a head that is not checked out"; agent-link, "The session runs where the code
+    is" (task 3.3)."""
     repo.git("switch", "-q", "main")
-    answer = client(target).post("/api/agent/ask", json=question())
-    assert answer.status_code == 409
-    assert "not at the reviewed head" in answer.json()["detail"]
-    assert fake_claude.calls("--bg") == []
+    (repo.path / "README.md").write_text("stashed edit\n")
+    repo.git("stash", "push", "-q", "-m", "kept by the user")
+    (repo.path / "README.md").write_text("edited, not committed\n")
+    (repo.path / "notes.txt").write_text("untracked\n")
+    index = repo.path / ".git" / "index"
+
+    def checkout_state() -> tuple[str, ...]:
+        return (
+            repo.git("status", "--porcelain=v1", "-uall"),
+            repo.git("branch", "--show-current"),
+            repo.git("stash", "list"),
+            repo.git("rev-parse", "HEAD"),
+            repo.git("for-each-ref"),
+            repo.git("worktree", "list", "--porcelain"),
+            repo.git("config", "--local", "--list"),
+        )
+
+    before = checkout_state()
+    index_before = (index.stat().st_mtime_ns, index.read_bytes())
+    api = client(target)
+    assert api.get("/api/agent").json()["privateCheckout"] is True
+
+    answer = api.post("/api/agent/ask", json=question())
+    assert answer.status_code == 200, answer.text
+    [start] = fake_claude.calls("--bg")
+    private = checkout.private_path(target.review_id)
+    assert Path(start["cwd"]).resolve() == private.resolve()
+    assert git.run(private, "rev-parse", "HEAD") == target.head
+    assert git.run(private, "status", "--porcelain=v1", "-uall") == ""
+    assert (private / "app.py").read_text() == "print('feature one')\n"
+    assert api.get("/api/agent").json()["privateCheckout"] is True
+
+    # The index first: the test's own `git status` may refresh it; xenagos must not.
+    assert (index.stat().st_mtime_ns, index.read_bytes()) == index_before
+    assert checkout_state() == before
+
+
+def test_the_private_checkout_is_kept_with_the_sessions_edits(target: ReviewTarget, repo: FixtureRepo) -> None:
+    repo.git("switch", "-q", "main")
+    folder = checkout.private_checkout(target)
+    (folder / "app.py").write_text("print('fixed by the agent')\n")
+    assert checkout.private_checkout(target) == folder
+    assert (folder / "app.py").read_text() == "print('fixed by the agent')\n"
+    assert checkout.is_private(folder / "sub")
+    assert not checkout.is_private(repo.path)
+
+
+def test_at_the_reviewed_head_no_private_checkout_is_made(target: ReviewTarget) -> None:
+    status = client(target).get("/api/agent").json()
+    assert (status["state"], status["privateCheckout"]) == ("none", False)
+    assert not checkout.checkouts_root().exists()
 
 
 def test_stopped_session_is_not_attached_or_resumed(target: ReviewTarget, fake_claude: FakeClaude) -> None:

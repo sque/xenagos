@@ -473,12 +473,22 @@ the skill into `~/.claude/skills` for the user's own sessions, on their request.
 Later change: carry a plan over to a new head. Steps already store `expect` text, so the old plan can be validated
 against the new head and every step that still matches kept.
 
-## Not yet verified
+### Sessions in the private checkout (task 3.3, 2026-11-20)
 
-- A session for the private checkout (task 3.3). `claude --bg` refuses a folder never trusted in Claude Code, and each
-  review's private clone is a new folder, so starting a session there will fail until the user trusts it. To settle
-  with task 3.3: one trusted parent for all clones does not help (parent trust does not count); options are telling
-  the user to run `claude` there once, or not starting sessions in private clones.
+When the user's checkout is not at the reviewed head, the session xenagos starts runs in the review's private clone
+(`checkouts/<review id>` under the data folder), made with `git clone --local --no-checkout` and a detached checkout of
+the head. A local clone links the repository's object files, so the head is there even when no branch names it, and
+nothing is written into the user's repository. The clone is made on first need and kept for the review, so a later
+session continues with the earlier one's edits. The agent pane says when the session works there, and says so before
+one is started.
+
+`claude --bg` refuses a folder never trusted in Claude Code, and trusting a parent does not count, so the first session
+of a review in a private clone fails until the user runs `claude` there once. xenagos does not mark folders as trusted
+on the user's behalf: it passes Claude Code's refusal on to the viewer, and the refusal names the folder and what to do.
+
+`xen clean` (decision 2) is not built in this change: review data and private clones stay until removed by hand.
+
+## Not yet verified
 
 - A session with a Monitor running reports `busy` even after its turn ended, so the viewer would show it as working.
   (`waiting` for an open permission prompt was seen in the build, as were `busy` and `idle`; the server reads them

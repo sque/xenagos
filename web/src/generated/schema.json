@@ -59,6 +59,11 @@
           ],
           "default": null
         },
+        "privateCheckout": {
+          "default": false,
+          "description": "The session runs, or one started now would run, in xenagos's private checkout of the head, because the user's checkout is not at it.",
+          "type": "boolean"
+        },
         "reason": {
           "anyOf": [
             {

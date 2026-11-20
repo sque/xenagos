@@ -30,6 +30,10 @@ export interface AgentStatus {
   activity?: string | null;
   name?: string | null;
   /**
+   * The session runs, or one started now would run, in xenagos's private checkout of the head, because the user's checkout is not at it.
+   */
+  privateCheckout?: boolean;
+  /**
    * Why the pane is empty, for the reviewer.
    */
   reason?: string | null;

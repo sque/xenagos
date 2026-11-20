@@ -25,7 +25,7 @@
 - [x] 3.1 Resolve range, single commit, and branch-against-base to pinned base and head ids, with errors naming an unknown revision; verified by tests on a fixture repository
 - [x] 3.2 Report when the reviewed branch has moved past the pinned head; verified by a test that commits to the fixture after opening
 - [x] 3.4 Default-target refusals (on the default branch, detached, no default branch found) and the notice that uncommitted changes are not included; verified by tests on the fixture
-- [ ] 3.3 Private clone at the head when it differs from the user's checkout; verified by a test asserting `git status`, current branch and stash list of the fixture are identical before and after
+- [x] 3.3 Private clone at the head when it differs from the user's checkout; verified by a test asserting `git status`, current branch and stash list of the fixture are identical before and after
 
 ## 4. Browse mode (spec: diff-browser)
 

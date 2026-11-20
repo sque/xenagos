@@ -81,5 +81,5 @@
 
 ## 8. End to end
 
-- [ ] 8.1 Run a full walkthrough on a real multi-file branch twice, once opened by the background session that wrote the branch and once opened by a person with no session; verified by a written note listing what worked, what the narration sounded like, and every point where the reviewer had to leave the viewer
-- [ ] 8.2 `openspec validate walkthrough-prototype --strict` passes and every scenario in the nine specs is covered by a test or by a named manual check in the note from 8.1
+- [x] 8.1 Run a full walkthrough on a real multi-file branch twice, once opened by the background session that wrote the branch and once opened by a person with no session; verified by a written note listing what worked, what the narration sounded like, and every point where the reviewer had to leave the viewer
+- [x] 8.2 `openspec validate walkthrough-prototype --strict` passes and every scenario in the nine specs is covered by a test or by a named manual check in the note from 8.1

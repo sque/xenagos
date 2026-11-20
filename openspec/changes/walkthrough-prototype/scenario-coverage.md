@@ -1,8 +1,8 @@
 # Scenario coverage (task 8.2)
 
 Every scenario of the nine specs, with what checks it. Server tests are in `server/tests/`, viewer tests in
-`web/src/` (`*.browser.test.*` run in Chromium against a fake review server). "8.1" names a manual check the end-to-end
-note from task 8.1 must record; those are the scenarios that need a real Claude Code session, a real browser on the
+`web/src/` (`*.browser.test.*` run in Chromium against a fake review server). "8.1" names a manual check recorded in
+`end-to-end-note.md` (task 8.1), whose last table lists each; those are the scenarios that need a real Claude Code session, a real browser on the
 real server, or a person's judgement. Written 2026-11-18, updated 2026-11-20 with task 3.3; 97 scenarios: 83 covered by tests alone and 14 that also need a check in 8.1.
 
 ## review-session
